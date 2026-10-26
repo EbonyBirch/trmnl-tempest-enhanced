@@ -1,0 +1,88 @@
+---
+name: Tempest Enhanced
+strategy: plugin_merge
+refresh_interval: 30
+no_screen_padding: 'no'
+dark_mode: 'no'
+framework_version: latest
+custom_fields:
+# Public author and contact metadata.
+- keyname: enhanced_author
+  field_type: author_bio
+  name: About Tempest Enhanced
+  category: environment,nature
+  description: "Tempest Enhanced brings detailed readings from your Tempest weather station to TRMNL OG and X, with full-screen and mashup layouts for a quick view of current conditions and the next two days. See temperature, humidity, wind gusts and direction, sunrise and sunset, forecast highs and lows, UV index, and precipitation information. Choose sea-level or station pressure in four units, with a trend indicator, and switch the secondary temperature between feels-like, wet-bulb temperature, and wet-bulb globe temperature when available.<br/><br/>Optional readings add solar radiation, brightness, or recent lightning activity with the last strike time, distance, and one-hour and three-hour counts. Combined readings depend on the layout; see the README for details. Separate footer controls let you adjust OG and X independently.<br/><br/>To get started, configure the official Tempest Weather Station plugin and keep it active in a playlist or mashup. Select that instance under Tempest data source, save, and refresh both plugins. No separate Tempest API token is required. Readings depend on the native source, and lightning is hidden when activity is stale or unavailable.<br/><br/>Created by EbonyBirch, using TRMNL's native Tempest data and localization. Find setup instructions, source code, and issue reporting in the linked GitHub project."
+  email_address: "usetrmnl@aomi.pl"
+  github_url: "https://github.com/EbonyBirch/trmnl-tempest-enhanced"
+  learn_more_url: "https://github.com/EbonyBirch/trmnl-tempest-enhanced"
+- keyname: tempest_source
+  field_type: plugin_instance_select
+  name: Tempest data source
+  plugin_keyname: tempest_weather_station
+  description: Select the native Tempest Weather Station instance to use as the live data source.
+  help_text: Only active Tempest Weather Station instances in a playlist or mashup appear in this list. Refresh the native plugin after selecting it.
+- keyname: pressure_source
+  field_type: select
+  name: Pressure Source
+  description: Choose whether to display pressure adjusted to sea level or measured at the station altitude.
+  options:
+  - Sea level: sea_level
+  - Station: station
+  default: sea_level
+- keyname: pressure_unit
+  field_type: select
+  name: Pressure Unit
+  description: Format in which to display pressure.
+  options:
+  - hPa: hpa
+  - mb: mb
+  - mmHg: mmhg
+  - inHg: inhg
+  default: hpa
+
+- keyname: information_below_weather_icon
+  field_type: select
+  name: Information below weather icon
+  description: Choose optional information to display. Both is available on partial layouts and X full-screen portrait; other full-screen views show solar/brightness only. On OG vertical half, Both requires a hidden footer; with the footer visible it shows solar/brightness only.
+  options:
+  - None: none
+  - "Lightning activity < last @ distance ( during last 1h, 3h ) >": lightning
+  - "Solar radiation & brightness < W/m² (lux) >": solar
+  - "Both solar/brightness and lightning (partial layouts + X portrait, check README.md)": both
+  default: none
+
+- keyname: secondary_temperature_measurement
+  field_type: select
+  name: Secondary temperature measurement
+  description: Choose the measurement shown in the top-right thermometer field.
+  options:
+  - Feels Like: feels_like
+  - Wet-Bulb Temperature: wet_bulb_temperature
+  - Wet-Bulb Globe Temperature: wet_bulb_globe_temperature
+  default: feels_like
+
+- keyname: footer_visibility_og
+  field_type: select
+  name: Footer visibility — OG
+  description: Choose which layouts show the footer on TRMNL OG.
+  options:
+  - Show everywhere: show
+  - Hide everywhere: hide_all
+  - Hide in all partial layouts: hide_partial
+  - Hide in vertical half only: hide_half_vertical
+  - Hide in horizontal half only: hide_half_horizontal
+  - Hide in quadrant only: hide_quadrant
+  default: show
+
+- keyname: footer_visibility_x
+  field_type: select
+  name: Footer visibility — X
+  description: Choose which layouts show the footer on TRMNL X.
+  options:
+  - Show everywhere: show
+  - Hide everywhere: hide_all
+  - Hide in all partial layouts: hide_partial
+  - Hide in vertical half only: hide_half_vertical
+  - Hide in horizontal half only: hide_half_horizontal
+  - Hide in quadrant only: hide_quadrant
+  default: show
