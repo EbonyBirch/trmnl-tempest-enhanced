@@ -1,21 +1,27 @@
 ---
-name: Tempest Enhanced
-description: "Your Tempest weather, enhanced"
 strategy: plugin_merge
-refresh_interval: 30
 no_screen_padding: 'no'
 dark_mode: 'no'
+static_data: ''
+polling_verb: get
 framework_version: latest
+serverless_language: ''
+refresh_interval_floor: ''
+polling_url: ''
+polling_headers: ''
+polling_body: ''
+id: 520849
+oauth_enabled: 'false'
+oauth_pkce_enabled: 'no'
 custom_fields:
-# Public author and contact metadata.
 - keyname: enhanced_author
   field_type: author_bio
   name: About Tempest Enhanced
   category: environment,nature
-  description: "Tempest Enhanced brings detailed readings from your Tempest weather station to TRMNL OG and X, with full-screen and mashup layouts for a quick view of current conditions and the next two days. See temperature, humidity, wind gusts and direction, sunrise and sunset, forecast highs and lows, UV index, and precipitation information. Choose sea-level or station pressure in four units, with a trend indicator, and switch the secondary temperature between feels-like, wet-bulb temperature, and wet-bulb globe temperature when available.<br/><br/>Optional readings add solar radiation, brightness, or recent lightning activity with the last strike time, distance, and one-hour and three-hour counts. Combined readings depend on the layout; see the README for details. Separate footer controls let you adjust OG and X independently.<br/><br/>To get started, configure the official Tempest Weather Station plugin and keep it active in a playlist or mashup. Select that instance under Tempest data source, save, and refresh both plugins. No separate Tempest API token is required. Readings depend on the native source, and lightning is hidden when activity is stale or unavailable.<br/><br/>Created by EbonyBirch, using TRMNL's native Tempest data and localization. Find setup instructions, source code, and issue reporting in the linked GitHub project."
-  email_address: "usetrmnl@aomi.pl"
-  github_url: "https://github.com/EbonyBirch/trmnl-tempest-enhanced"
-  learn_more_url: "https://github.com/EbonyBirch/trmnl-tempest-enhanced"
+  description: Tempest Enhanced brings detailed readings from your Tempest weather station to TRMNL OG and X, with full-screen and mashup layouts for a quick view of current conditions and the next two days. See temperature, humidity, wind gusts and direction, sunrise and sunset, forecast highs and lows, UV index, and precipitation information. Choose sea-level or station pressure in four units, with a trend indicator, and switch the secondary temperature between feels-like, wet-bulb temperature, and wet-bulb globe temperature when available.<br/><br/>Optional readings add solar radiation, brightness, or recent lightning activity with the last strike time, distance, and one-hour and three-hour counts. Combined readings depend on the layout; see the README for details. Separate footer controls let you adjust OG and X independently.<br/><br/>To get started, configure the official Tempest Weather Station plugin and keep it active in a playlist or mashup. Select that instance under Tempest data source, save, and refresh both plugins. No separate Tempest API token is required. Readings depend on the native source, and lightning is hidden when activity is stale or unavailable.<br/><br/>Created by EbonyBirch, using TRMNL's native Tempest data and localization. Find setup instructions, source code, and issue reporting in the linked GitHub project.
+  email_address: usetrmnl@aomi.pl
+  github_url: https://github.com/EbonyBirch/trmnl-tempest-enhanced
+  learn_more_url: https://github.com/EbonyBirch/trmnl-tempest-enhanced
 - keyname: tempest_source
   field_type: plugin_instance_select
   name: Tempest data source
@@ -42,7 +48,6 @@ custom_fields:
   - mmHg: mmhg
   - inHg: inhg
   default: hpa
-
 - keyname: information_below_weather_icon
   group: Display
   field_type: select
@@ -50,11 +55,10 @@ custom_fields:
   description: Choose optional information to display. Both shows solar/brightness and lightning on partial layouts and X full-screen portrait. In other full-screen views, selecting Both shows solar/brightness only. OG vertical half displays both readings with either footer setting.
   options:
   - None: none
-  - "Lightning (last strike, 1h and 3h counts)": lightning
-  - "Solar radiation & brightness < W/m² (lux) >": solar
-  - "Both solar/brightness and lightning": both
+  - Lightning (last strike, 1h and 3h counts): lightning
+  - Solar radiation & brightness < W/m² (lux) >: solar
+  - Both solar/brightness and lightning: both
   default: none
-
 - keyname: secondary_temperature_measurement
   group: Display
   field_type: select
@@ -65,7 +69,6 @@ custom_fields:
   - Wet-Bulb Temperature: wet_bulb_temperature
   - Wet-Bulb Globe Temperature: wet_bulb_globe_temperature
   default: feels_like
-
 - keyname: footer_visibility_og
   group: Display
   field_type: select
@@ -79,7 +82,6 @@ custom_fields:
   - Hide in horizontal half only: hide_half_horizontal
   - Hide in quadrant only: hide_quadrant
   default: show
-
 - keyname: footer_visibility_x
   group: Display
   field_type: select
@@ -93,3 +95,6 @@ custom_fields:
   - Hide in horizontal half only: hide_half_horizontal
   - Hide in quadrant only: hide_quadrant
   default: show
+name: Tempest Enhanced
+description: Your Tempest weather, enhanced
+refresh_interval: 30
