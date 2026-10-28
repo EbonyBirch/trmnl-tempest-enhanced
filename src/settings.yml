@@ -95,6 +95,6 @@ custom_fields:
   - Hide in horizontal half only: hide_half_horizontal
   - Hide in quadrant only: hide_quadrant
   default: show
-name: Tempest Enhanced
+name: Tempest Enhanced - Kaskady
 description: Your Tempest weather, enhanced
 refresh_interval: 30
