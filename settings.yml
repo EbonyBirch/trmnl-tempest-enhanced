@@ -1,5 +1,6 @@
 ---
 name: Tempest Enhanced
+description: "Your Tempest weather, enhanced"
 strategy: plugin_merge
 refresh_interval: 30
 no_screen_padding: 'no'
@@ -22,6 +23,7 @@ custom_fields:
   description: Select the native Tempest Weather Station instance to use as the live data source.
   help_text: Only active Tempest Weather Station instances in a playlist or mashup appear in this list. Refresh the native plugin after selecting it.
 - keyname: pressure_source
+  group: Display
   field_type: select
   name: Pressure Source
   description: Choose whether to display pressure adjusted to sea level or measured at the station altitude.
@@ -30,6 +32,7 @@ custom_fields:
   - Station: station
   default: sea_level
 - keyname: pressure_unit
+  group: Display
   field_type: select
   name: Pressure Unit
   description: Format in which to display pressure.
@@ -41,17 +44,19 @@ custom_fields:
   default: hpa
 
 - keyname: information_below_weather_icon
+  group: Display
   field_type: select
   name: Information below weather icon
-  description: Choose optional information to display. Both is available on partial layouts and X full-screen portrait; other full-screen views show solar/brightness only. On OG vertical half, Both requires a hidden footer; with the footer visible it shows solar/brightness only.
+  description: Choose optional information to display. Both shows solar/brightness and lightning on partial layouts and X full-screen portrait. In other full-screen views, selecting Both shows solar/brightness only. OG vertical half displays both readings with either footer setting.
   options:
   - None: none
-  - "Lightning activity < last @ distance ( during last 1h, 3h ) >": lightning
+  - "Lightning (last strike, 1h and 3h counts)": lightning
   - "Solar radiation & brightness < W/m² (lux) >": solar
-  - "Both solar/brightness and lightning (partial layouts + X portrait, check README.md)": both
+  - "Both solar/brightness and lightning": both
   default: none
 
 - keyname: secondary_temperature_measurement
+  group: Display
   field_type: select
   name: Secondary temperature measurement
   description: Choose the measurement shown in the top-right thermometer field.
@@ -62,6 +67,7 @@ custom_fields:
   default: feels_like
 
 - keyname: footer_visibility_og
+  group: Display
   field_type: select
   name: Footer visibility — OG
   description: Choose which layouts show the footer on TRMNL OG.
@@ -75,6 +81,7 @@ custom_fields:
   default: show
 
 - keyname: footer_visibility_x
+  group: Display
   field_type: select
   name: Footer visibility — X
   description: Choose which layouts show the footer on TRMNL X.

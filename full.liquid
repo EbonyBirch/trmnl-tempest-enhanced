@@ -1,168 +1,3 @@
-{%- assign w = tempest_source -%}
-{%- assign w = w.merge_variables | default: w -%}
-
-{%- assign locale = trmnl.user.locale -%}
-{%- assign i18n_weather = 'weather' | l_word: locale -%}
-{%- assign i18n_temperature = 'temperature' | l_word: locale -%}
-{%- assign i18n_feels_like = 'feels_like' | l_word: locale -%}
-{%- assign i18n_wbt_short = 'wet_bulb_temperature_short' | l_word: locale -%}
-{%- assign i18n_wbgt_short = 'wet_bulb_globe_temperature_short' | l_word: locale -%}
-{%- assign i18n_humidity = 'humidity' | l_word: locale -%}
-{%- assign i18n_pressure = 'pressure' | l_word: locale -%}
-{%- assign i18n_pressure_rising = 'pressure_rising' | l_word: locale -%}
-{%- assign i18n_pressure_steady = 'pressure_steady' | l_word: locale -%}
-{%- assign i18n_pressure_falling = 'pressure_falling' | l_word: locale -%}
-{%- assign i18n_wind_direction = 'wind_direction' | l_word: locale -%}
-{%- assign i18n_precipitation = 'precipitation' | l_word: locale -%}
-{%- assign i18n_uv = 'uv' | l_word: locale -%}
-{%- assign i18n_uv_short = 'uv_short' | l_word: locale -%}
-{%- assign i18n_lightning = 'lightning' | l_word: locale -%}
-{%- assign i18n_solar_radiation = 'solar_radiation' | l_word: locale -%}
-{%- assign i18n_conditions = 'conditions' | l_word: locale -%}
-{%- assign i18n_right_now = 'right_now' | l_word: locale -%}
-{%- assign i18n_today = 'today' | l_word: locale -%}
-{%- assign i18n_tomorrow = 'tomorrow' | l_word: locale -%}
-{%- assign i18n_sunrise = 'sunrise' | l_word: locale -%}
-{%- assign i18n_sunset = 'sunset' | l_word: locale -%}
-{%- assign i18n_min = 'min' | l_word: locale -%}
-{%- assign i18n_max = 'max' | l_word: locale -%}
-
-{%- assign information_below_weather_icon = trmnl.plugin_settings.custom_fields_values.information_below_weather_icon | default: 'none' -%}
-
-{%- assign secondary_temperature_measurement = trmnl.plugin_settings.custom_fields_values.secondary_temperature_measurement | default: 'feels_like' -%}
-
-{%- assign secondary_temperature_value = w.feels_like | default: w.meta.current_conditions.feels_like -%}
-{%- assign secondary_temperature_label = i18n_feels_like -%}
-
-{%- if secondary_temperature_measurement == 'wet_bulb_temperature' -%}
-  {%- assign selected_secondary_value = w.meta.current_conditions.wet_bulb_temperature -%}
-  {%- if selected_secondary_value != blank -%}
-    {%- assign secondary_temperature_value = selected_secondary_value -%}
-    {%- assign secondary_temperature_label = i18n_wbt_short -%}
-  {%- endif -%}
-{%- elsif secondary_temperature_measurement == 'wet_bulb_globe_temperature' -%}
-  {%- assign selected_secondary_value = w.meta.current_conditions.wet_bulb_globe_temperature -%}
-  {%- if selected_secondary_value != blank -%}
-    {%- assign secondary_temperature_value = selected_secondary_value -%}
-    {%- assign secondary_temperature_label = i18n_wbgt_short -%}
-  {%- endif -%}
-{%- endif -%}
-
-{%- assign lightning_last_epoch = w.meta.current_conditions.lightning_strike_last_epoch -%}
-{%- assign lightning_last_distance = w.meta.current_conditions.lightning_strike_last_distance -%}
-{%- assign lightning_count_1h = w.meta.current_conditions.lightning_strike_count_last_1hr -%}
-{%- assign lightning_count_3h = w.meta.current_conditions.lightning_strike_count_last_3hr -%}
-{%- assign lightning_distance_units = w.meta.units.units_distance -%}
-{%- assign lightning_available = false -%}
-{%- assign lightning_last_time = blank -%}
-
-{%- assign lightning_now_utc = trmnl.system.timestamp_utc | plus: 0 -%}
-{%- assign lightning_last_epoch_num = lightning_last_epoch | plus: 0 -%}
-
-{%- if lightning_last_epoch != blank
-      and lightning_last_distance != blank
-      and lightning_count_1h != blank
-      and lightning_count_3h != blank
-      and lightning_distance_units != blank
-      and lightning_last_epoch_num > 0
-      and lightning_count_3h > 0
-      and lightning_now_utc >= lightning_last_epoch_num -%}
-  {%- assign lightning_age_seconds = lightning_now_utc | minus: lightning_last_epoch_num -%}
-  {%- if lightning_age_seconds <= 10800 -%}
-    {%- assign lightning_local_epoch = lightning_last_epoch_num | plus: w.utc_offset -%}
-    {%- assign lightning_last_time = lightning_local_epoch | date: '%H:%M' -%}
-    {%- assign lightning_available = true -%}
-  {%- endif -%}
-{%- endif -%}
-
-{%- assign solar_radiation = w.meta.current_conditions.solar_radiation -%}
-{%- assign current_brightness = w.meta.current_conditions.brightness -%}
-{%- assign solar_available = false -%}
-{%- if solar_radiation != blank or current_brightness != blank -%}
-  {%- assign solar_available = true -%}
-{%- endif -%}
-
-{%- assign pressure_source_raw = trmnl.plugin_settings.custom_fields_values.pressure_source | default: 'sea_level' -%}
-{%- assign pressure_source = pressure_source_raw | strip | downcase | replace: ' ', '_' -%}
-{%- if pressure_source == 'station' -%}
-  {%- assign raw_pressure_mb = w.meta.current_conditions.station_pressure -%}
-{%- else -%}
-  {%- assign raw_pressure_mb = w.meta.current_conditions.sea_level_pressure -%}
-{%- endif -%}
-{%- assign pressure_unit_raw = trmnl.plugin_settings.custom_fields_values.pressure_unit | default: 'hpa' -%}
-{%- assign pressure_unit_key = pressure_unit_raw | strip | downcase -%}
-
-{%- case pressure_unit_key -%}
-  {%- when 'inhg' -%}
-    {%- assign pressure_units = 'inHg' -%}
-  {%- when 'mmhg' -%}
-    {%- assign pressure_units = 'mmHg' -%}
-  {%- when 'mb' -%}
-    {%- assign pressure_units = 'mb' -%}
-  {%- else -%}
-    {%- assign pressure_units = 'hPa' -%}
-{%- endcase -%}
-
-{%- if raw_pressure_mb == blank -%}
-  {%- assign current_pressure = '---' -%}
-{%- else -%}
-  {%- case pressure_unit_key -%}
-    {%- when 'inhg' -%}
-      {%- assign current_pressure = raw_pressure_mb | times: 0.0295299830714 | round: 2 -%}
-    {%- when 'mmhg' -%}
-      {%- assign current_pressure = raw_pressure_mb | times: 0.750061683 | round: 1 -%}
-    {%- when 'mb' -%}
-      {%- assign current_pressure = raw_pressure_mb | round: 1 -%}
-    {%- else -%}
-      {%- assign current_pressure = raw_pressure_mb | round: 1 -%}
-  {%- endcase -%}
-{%- endif -%}
-
-{%- assign pressure_trend = w.meta.current_conditions.pressure_trend | downcase -%}
-{%- assign pressure_trend_icon = blank -%}
-{%- assign pressure_trend_alt = '' -%}
-{%- case pressure_trend -%}
-  {%- when 'rising' -%}
-    {%- assign pressure_trend_icon = 'https://trmnl.com/images/plugins/weather/wi-direction-up.svg' -%}
-    {%- assign pressure_trend_alt = i18n_pressure_rising -%}
-  {%- when 'falling' -%}
-    {%- assign pressure_trend_icon = 'https://trmnl.com/images/plugins/weather/wi-direction-down.svg' -%}
-    {%- assign pressure_trend_alt = i18n_pressure_falling -%}
-  {%- when 'steady' -%}
-    {%- assign pressure_trend_icon = 'https://trmnl.com/images/plugins/weather/wi-direction-right.svg' -%}
-    {%- assign pressure_trend_alt = i18n_pressure_steady -%}
-{%- endcase -%}
-{%- assign main_temperature = w.temperature | round -%}
-{%- assign main_temperature_chars = main_temperature | append: '' | size -%}
-{%- assign main_temperature_class = 'value--xxxlarge' -%}
-{%- assign main_temperature_lg_class = 'lg:value--tera' -%}
-
-{%- if main_temperature >= 100 or main_temperature <= -10 -%}
-  {%- assign main_temperature_class = 'value--xxlarge' -%}
-{%- endif -%}
-
-{%- if main_temperature >= 100 or main_temperature <= -10 -%}
-  {%- assign main_temperature_lg_class = 'lg:value--mega' -%}
-{%- elsif main_temperature >= 10 or main_temperature < 0 -%}
-  {%- assign main_temperature_lg_class = 'lg:value--giga' -%}
-{%- endif -%}
-
-{%- assign current_conditions = w.right_now_conditions | default: w.forecast.right_now.conditions -%}
-{%- assign today_conditions = w.today_conditions | default: w.forecast.today.conditions -%}
-{%- assign tomorrow_conditions = w.forecast.tomorrow.conditions -%}
-
-{%- assign footer_refreshed_at = w.refreshed_at -%}
-{%- if footer_refreshed_at == blank -%}
-  {%- assign footer_utc_offset = w.utc_offset | default: trmnl.user.utc_offset | default: 0 -%}
-  {%- assign footer_local_epoch = trmnl.system.timestamp_utc | plus: footer_utc_offset -%}
-  {%- assign footer_refreshed_at = footer_local_epoch | date: '%H:%M' -%}
-{%- endif -%}
-
-{%- assign today_label = w.forecast.today.day_override -%}
-{%- if today_label == blank -%}{%- assign today_label = i18n_today -%}{%- endif -%}
-{%- assign tomorrow_label = w.forecast.tomorrow.day_override -%}
-{%- if tomorrow_label == blank -%}{%- assign tomorrow_label = i18n_tomorrow -%}{%- endif -%}
-
 {%- assign te_footer_classes = '' -%}
 {%- assign te_footer_policy = trmnl.plugin_settings.custom_fields_values.footer_visibility_og | default: 'show' -%}
 {%- if te_footer_policy == 'hide_all' or te_footer_policy == 'hide_full' -%}
@@ -173,180 +8,109 @@
 {%- assign te_footer_classes = te_footer_classes | append: ' te-footer-hide-x' -%}
 {%- endif -%}
 
+{%- assign hide_footer = false -%}
+{%- if te_device_family == 'og' and te_footer_classes contains 'te-footer-hide-og' -%}
+  {%- assign hide_footer = true -%}
+{%- elsif te_device_family == 'x' and te_footer_classes contains 'te-footer-hide-x' -%}
+  {%- assign hide_footer = true -%}
+{%- endif -%}
+
 <style>
-  /* Only compatibility styling that the native plugin gets from its shared weather partial. */
-  .tempest-responsive-spans .wx-gray { filter: brightness(0.5) saturate(0%); }
-
-  /*
-   * Optional information beneath the weather icon:
-   * Keep the existing large weather icon geometrically untouched and place the
-   * optional information in the otherwise-unused space at the bottom of its
-   * existing grid cell.
-   */
-  .tempest-responsive-spans .weather-icon-cell {
-    position: relative;
-  }
-
-  .tempest-responsive-spans .weather-icon-info {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-  }
-
-  /*
-   * Top-middle width adjustment:
-   * Reclaim half of the outer grid gap on each side of the top-middle column.
-   * Equal left/right expansion preserves the center point of the main value.
-   */
-  .tempest-responsive-spans .top-middle-column {
-    margin-left: -5px;
-    margin-right: -5px;
-    width: calc(100% + 10px);
-  }
-
-  /*
-   * OG-only pressure-trend nudge:
-   * Move the arrow slightly into the unused space at the right edge of the
-   * pressure row. Keep TRMNL X at its established position.
-   */
-  .tempest-responsive-spans .pressure-trend-arrow {
-    margin-left: auto;
-    transform: translateX(4px);
-  }
-
-  @media (min-width: 1200px) {
+/* Scoped geometry supplements native responsive utilities. */
+.tempest-responsive-spans .te-nowrap, .tempest-responsive-spans [data-te-nowrap] { white-space:nowrap;min-width:0; }
+.tempest-responsive-spans [data-te-center] { justify-content:center; }
+.tempest-responsive-spans [data-te-black] { filter:brightness(0) saturate(0%); }
+.tempest-responsive-spans .wx-gray { filter: brightness(0.5) saturate(0%); }
+.tempest-responsive-spans .weather-icon-cell { position: relative; }
+.tempest-responsive-spans .weather-icon-info { position: absolute;left: 0;right: 0;bottom: 0;width: 100%; }
+.tempest-responsive-spans .top-middle-column { margin-left: -5px;margin-right: -5px;width: calc(100% + 10px); }
+.tempest-responsive-spans .pressure-trend-arrow { margin-left: auto;transform: translateX(4px); }
+@media (min-width: 1200px) {
     .tempest-responsive-spans .pressure-trend-arrow {
       transform: none;
     }
   }
-
-/* Per-instance footer policy. Zero the reserved height as well as hiding the bar. */
-:is(.screen--og, .screen--ogv2) .title_bar.te-footer-hide-og,
-.screen--v2 .title_bar.te-footer-hide-x { display:none !important; }
-:is(.screen--og, .screen--ogv2) .layout.te-footer-hide-og,
-.screen--v2 .layout.te-footer-hide-x {
- --title-bar-height:0px; --title-bar-small-height:0px;
- margin-bottom:0 !important;
-}
-
-/* X full-screen portrait experiment: icon over temperature and measurements. */
-.screen--v2.screen--portrait .tempest-responsive-spans .te-current-grid { grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:auto auto; align-items:center; row-gap:16px; }
-.screen--v2.screen--portrait .tempest-responsive-spans .weather-icon-cell { grid-column:1 / 3 !important; grid-row:1; flex-direction:column; gap:8px; }
-.screen--v2.screen--portrait .tempest-responsive-spans .weather-icon-cell > img { width:48cqw !important; height:48cqw !important; max-width:100%; object-fit:contain; }
-.screen--v2.screen--portrait .tempest-responsive-spans .weather-icon-info { position:static; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column { grid-column:1 / 3 !important; grid-row:2; width:100%; margin:0; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column > .item { width:100%; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column > .item > .meta { display:none; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column > .item > .content { display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); grid-template-rows:auto auto auto; align-items:center; column-gap:12px; width:100%; min-width:0; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-current-temperature { grid-column:1; grid-row:1 / 4; min-width:0; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-sun-times { grid-column:2; grid-row:1; align-self:end; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-wind-pressure { grid-column:2; grid-row:2; align-self:start; margin-top:8px !important; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column .te-measurements > .grid { grid-template-columns:minmax(0,1fr); row-gap:8px; min-width:0; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column .te-measurements > .grid > div { grid-column:1 / -1; font-size:var(--label-font-size,16px) !important; white-space:nowrap; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column .te-measurements > .grid img { height:24px !important; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column .te-measurements > .grid > div > div:first-child { width:28px !important; flex-shrink:0; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column .pressure-trend-arrow { margin-left:6px; transform:none; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column .value[class~="lg:value--mega"] { font-size:var(--value-xxxlarge-font-size,128px) !important; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-current-secondary { grid-column:3 !important; grid-row:1 / 3; align-self:stretch; }
-
-/* Optional measurements share the portrait measurement column. */
+.screen--lg.screen--portrait .tempest-responsive-spans .te-current-grid {grid-template-rows:auto auto;align-items:center;row-gap:16px; }
+.screen--lg.screen--portrait .tempest-responsive-spans .weather-icon-cell { grid-column:1 / 3 !important;grid-row:1;gap:8px; }
+.screen--lg.screen--portrait .tempest-responsive-spans .weather-icon-cell > img { width:48cqw !important;height:48cqw !important;max-width:100%;object-fit:contain; }
+.screen--lg.screen--portrait .tempest-responsive-spans .weather-icon-info { position:static; }
+.screen--lg.screen--portrait .tempest-responsive-spans .top-middle-column { grid-column:1 / 3 !important;grid-row:2;width:100%;margin:0; }
+.screen--lg.screen--portrait .tempest-responsive-spans .top-middle-column > .item { width:100%; }
+.screen--lg.screen--portrait .tempest-responsive-spans .top-middle-column > .item > .content { display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);align-items:center;column-gap:12px;width:100%;min-width:0; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-current-temperature { grid-column:1;min-width:0; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-sun-times { grid-column:2;grid-row:1;align-self:end; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-wind-pressure { grid-column:2;grid-row:2;align-self:start;margin-top:8px !important; }
+.screen--lg.screen--portrait .tempest-responsive-spans .top-middle-column .te-measurements > .grid {row-gap:8px;min-width:0; }
+.screen--lg.screen--portrait .tempest-responsive-spans .top-middle-column .te-measurements > .grid > div { grid-column:1 / -1;white-space:nowrap; }
+.screen--lg.screen--portrait .tempest-responsive-spans .top-middle-column .te-measurements > .grid img { height:24px !important; }
+.screen--lg.screen--portrait .tempest-responsive-spans .top-middle-column .te-measurements > .grid > div > div:first-child { width:28px !important;flex-shrink:0; }
+.screen--lg.screen--portrait .tempest-responsive-spans .top-middle-column .pressure-trend-arrow { margin-left:6px;transform:none; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-current-secondary { grid-column:3 !important;grid-row:1 / 3;align-self:stretch; }
 .tempest-responsive-spans .te-portrait-extra { display:none; }
-.screen--v2.screen--portrait .tempest-responsive-spans .weather-icon-cell { justify-content:center !important; align-items:center !important; width:100%; }
-.screen--v2.screen--portrait .tempest-responsive-spans .weather-icon-cell > .weather-icon-info { display:none !important; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra { display:block; grid-column:2; grid-row:3; min-width:0; align-self:start; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info { position:static; margin-top:8px; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info > div { display:grid; grid-template-columns:28px minmax(0,1fr); gap:8px; align-items:center; font-size:var(--label-font-size,16px) !important; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra img { height:24px !important; width:24px; justify-self:center; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra span { white-space:normal !important; }
-
-/* Keep optional information directly below pressure without temperature-driven gaps. */
+.screen--lg.screen--portrait .tempest-responsive-spans .weather-icon-cell { justify-content:center !important;align-items:center !important;width:100%; }
+.screen--lg.screen--portrait .tempest-responsive-spans .weather-icon-cell > .weather-icon-info { display:none !important; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-extra { display:block;grid-column:2;grid-row:3;min-width:0;align-self:start; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info { position:static;margin-top:8px; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info > div { display:grid;gap:8px;align-items:center; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-extra img { height:24px !important;width:24px;justify-self:center; }
 .tempest-responsive-spans .te-measurements { display:contents; }
-.screen--v2.screen--portrait .tempest-responsive-spans .top-middle-column > .item > .content { grid-template-rows:auto; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-current-temperature { grid-row:1; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-measurements { display:flex; flex-direction:column; justify-content:center; gap:8px; grid-column:2; grid-row:1; min-width:0; align-self:center; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-measurements > .grid { margin:0 !important; width:100%; align-self:stretch; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-measurements .te-portrait-extra { display:contents; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-measurements .te-portrait-extra .weather-icon-info { margin:0; }
-
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info > div { column-gap:4px; }
-
-/* Shift the widened stats block right into the available gutter. */
-.screen--v2.screen--portrait .tempest-responsive-spans .te-measurements { margin-left:-16px; width:calc(100% + 32px); max-width:none; overflow:visible; }
-
-/* Avoid the inner optional-reading column forcing the lightning to wrap. */
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info { max-width:none; overflow:visible; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info > div { grid-template-columns:28px max-content; max-width:none; overflow:visible; }
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra span { white-space:nowrap !important; max-width:none; }
-
-/* All six readings use one left-aligned icon/text geometry. */
-.screen--v2.screen--portrait .tempest-responsive-spans .te-measurements > .grid > div,
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info > div {
- display:grid !important; grid-template-columns:28px max-content !important;
- column-gap:4px !important; justify-content:start !important;
- justify-items:start; align-items:center; width:100%; min-width:0;
-}
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info {
- align-items:stretch !important; justify-content:start !important; width:100%;
-}
-.screen--v2.screen--portrait .tempest-responsive-spans .te-measurements > .grid > div > div:first-child {
- justify-self:center; justify-content:center;
-}
-.te-portrait-condition { display:none; }
-
-/* X portrait test 10: isolated layout adjustments. */
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-condition { display:block; width:100%; text-align:center; white-space:normal; }
-/* Lift the icon and its caption together, leaving more space before measurements. */
-.screen--v2.screen--portrait .tempest-responsive-spans .weather-icon-cell > img,
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-condition { position:relative; top:-24px; }
-
-/* Summer test 1: count rounded digits plus minus; degree symbol excluded.
-   X full-screen: 1 character 220px, 2 characters 170px, 3+ characters 128px.
-   Explicit scope overrides the earlier portrait mega rule in both orientations. */
-.screen--v2 .tempest-responsive-spans .te-current-temperature > .value[data-temperature-chars] { font-size:var(--value-xxxlarge-font-size,128px) !important; }
-.screen--v2 .tempest-responsive-spans .te-current-temperature > .value[data-temperature-chars="1"] { font-size:var(--value-giga-font-size,220px) !important; }
-.screen--v2 .tempest-responsive-spans .te-current-temperature > .value[data-temperature-chars="2"] { font-size:var(--value-mega-font-size,170px) !important; }
-/* Lift only the main icon; optional measurements stay anchored. */
-:is(.screen--og, .screen--ogv2) .tempest-responsive-spans .weather-icon-cell > img { position:relative; top:-10px; width:17.6cqw !important; height:auto !important; }
-.screen--v2 .tempest-responsive-spans .weather-icon-cell > img { position:relative; top:-24px; }
-.screen--v2.screen--portrait .tempest-responsive-spans .weather-icon-cell > img,
-.screen--v2.screen--portrait .tempest-responsive-spans .te-portrait-condition { top:-40px; }
+.screen--lg.screen--portrait .tempest-responsive-spans .top-middle-column > .item > .content { grid-template-rows:auto; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-current-temperature { grid-row:1; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-measurements { display:flex;flex-direction:column;justify-content:center;gap:8px;grid-column:2;grid-row:1;min-width:0;align-self:center; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-measurements > .grid { margin:0 !important;width:100%;align-self:stretch; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-measurements .te-portrait-extra { display:contents; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-measurements .te-portrait-extra .weather-icon-info { margin:0; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info > div { column-gap:4px; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-measurements { margin-left:-16px;width:calc(100% + 32px);max-width:none;overflow:visible; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info { max-width:none;overflow:visible; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info > div { grid-template-columns:28px max-content;max-width:none;overflow:visible; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-extra span { white-space:nowrap !important;max-width:none; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-measurements > .grid > div,
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info > div { display:grid !important;grid-template-columns:28px max-content !important;column-gap:4px !important;justify-content:start !important;justify-items:start;align-items:center;width:100%;min-width:0; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-extra .weather-icon-info { align-items:stretch !important;justify-content:start !important;width:100%; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-measurements > .grid > div > div:first-child { justify-self:center;justify-content:center; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-condition { width:100%;text-align:center;white-space:normal; }
+.screen--lg.screen--portrait .tempest-responsive-spans .weather-icon-cell > img,
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-condition { position:relative; }
+.screen--md .tempest-responsive-spans .weather-icon-cell > img { position:relative;top:-10px;width:17.6cqw !important;height:auto !important; }
+.screen--lg .tempest-responsive-spans .weather-icon-cell > img { position:relative;top:-24px; }
+.screen--lg.screen--portrait .tempest-responsive-spans .weather-icon-cell > img,
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-condition { top:-40px; }
+.screen--lg.screen--portrait .tempest-responsive-spans .te-portrait-marker { width:4px;min-width:4px;flex-basis:4px; }
 </style>
 
 {%- if w.temperature == blank -%}
-<div class="view view--full tempest-responsive-spans">
-  <div class="layout layout--col flex flex--center-x flex--center-y gap--medium{{ te_footer_classes }}">
+  <div class="layout tempest-responsive-spans layout--col flex flex--center-x flex--center-y gap--medium{{ te_footer_classes }}">
     <span class="value value--small">Tempest data unavailable</span>
     <span class="label">Select an active Tempest Weather Station in plugin settings and refresh the source plugin.</span>
   </div>
-  <div class="title_bar{{ te_footer_classes }}">
+  {% unless hide_footer %}
+<div class="title_bar{{ te_footer_classes }}">
     <span class="image">t°</span>
     <h1 class="title">{{ i18n_weather }}</h1>
     <span class="instance">{{ trmnl.plugin_settings.instance_name }}</span>
   </div>
-</div>
+{% endunless %}
 {%- else -%}
-<div class="view view--full tempest-responsive-spans">
-  <div class="layout layout--col gap--space-between{{ te_footer_classes }}">
+  <div class="layout tempest-responsive-spans layout--col gap--space-between{{ te_footer_classes }}">
     <!-- Top half: native Tempest structure, not a hand-made recreation. -->
-    <div class="grid te-current-grid">
-      <div class="row row--center col--span-3 col--end weather-icon-cell">
+    <div class="grid te-current-grid lg:portrait:grid--cols-3">
+      <div class="row row--center col--span-3 col--end weather-icon-cell lg:portrait:flex--col">
         <img src="{{ w.weather_image }}"
-             class="image--adaptive w--[22cqw] h--auto lg:w--[28cqw] lg:h--[28cqw] wx-gray"
+             class="image--adaptive w--[22cqw] h--auto lg:w--[28cqw] wx-gray"
              alt="{{ i18n_conditions }}">
 
-        <span class="label lg:label--large te-portrait-condition">{{ current_conditions }}</span>
+        <span class="label lg:label--large te-portrait-condition hidden lg:portrait:block">{{ current_conditions }}</span>
 
         {% capture te_full_optional_info %}
         {% if information_below_weather_icon == 'lightning' %}
           {% if lightning_available %}
             <div class="weather-icon-info flex flex--col flex--center-x">
-              <div class="flex flex--row flex--center-x flex--center-y gap--xsmall w--full label lg:label--large">
+              <div class="flex flex--row flex--center-x flex--center-y gap--xsmall w--full label lg:label--large lg:portrait:label--base">
                 <img src="https://trmnl.com/images/plugins/weather/wi-lightning.svg"
                      class="h--5 lg:h--7"
                      alt="{{ i18n_lightning }}">
-                <span class="text--regular" style="white-space: nowrap;">{{ lightning_last_time }} @ {{ lightning_last_distance }} {{ lightning_distance_units }} ({{ lightning_count_1h }} / {{ lightning_count_3h }})</span>
+                <span class="text--regular te-nowrap">{{ lightning_last_time }} @ {{ lightning_last_distance }} {{ lightning_distance_units }} ({{ lightning_count_1h }} / {{ lightning_count_3h }})</span>
               </div>
             </div>
           {% endif %}
@@ -354,11 +118,11 @@
         {% elsif information_below_weather_icon == 'solar' or information_below_weather_icon == 'both' %}
           <div class="weather-icon-info flex flex--col flex--center-x">
             {% if solar_available %}
-              <div class="flex flex--row flex--center-x flex--center-y gap--xsmall w--full label lg:label--large">
+              <div class="flex flex--row flex--center-x flex--center-y gap--xsmall w--full label lg:label--large lg:portrait:label--base">
                 <img src="https://trmnl.com/images/plugins/weather/wi-day-sunny.svg"
                      class="h--5 lg:h--7"
                      alt="{{ i18n_solar_radiation }}">
-                <span class="text--regular" style="white-space: nowrap;">{% if solar_radiation != blank %}{{ solar_radiation | round }} W/m²{% else %}— W/m²{% endif %} ({% if current_brightness != blank %}{{ current_brightness | round }} lux{% else %}— lux{% endif %})</span>
+                <span class="text--regular te-nowrap">{% if solar_radiation != blank %}{{ solar_radiation | round }} W/m²{% else %}— W/m²{% endif %} ({% if current_brightness != blank %}{{ current_brightness | round }} lux{% else %}— lux{% endif %})</span>
               </div>
             {% endif %}
           </div>
@@ -369,39 +133,39 @@
 
       <div class="col col--span-3 col--end top-middle-column">
         <div class="item h--full">
-          <div class="meta"></div>
+          <div class="meta lg:portrait:hidden"></div>
           <div class="content">
             <div class="flex flex--center-x w--full te-current-temperature">
               <span data-temperature-chars="{{ main_temperature_chars }}" class="value {{ main_temperature_class }} {{ main_temperature_lg_class }} w--full text--center">{{ main_temperature }}°</span>
             </div>
             <div class="te-measurements">
-            <div class="grid grid--cols-12 w--full te-sun-times">
-              <div class="col--span-5 flex flex--row flex--left flex--center-y gap--xsmall label lg:label--large">
+            <div class="grid grid--cols-12 lg:portrait:grid--cols-1 w--full te-sun-times">
+              <div class="col--span-5 flex flex--row flex--left flex--center-y gap--xsmall label lg:label--large lg:portrait:label--base">
                 <div class="w--8 lg:w--10 flex flex--center-x flex--center-y">
                   <img src="https://trmnl.com/images/plugins/weather/wi-sunrise.svg" class="h--6 lg:h--8" alt="{{ i18n_sunrise }}">
                 </div>
                 <span>{{ w.forecast.right_now.sunrise }}</span>
               </div>
-              <div class="col--span-7 flex flex--row flex--left flex--center-y gap--none lg:gap--xsmall label lg:label--large">
+              <div class="col--span-7 flex flex--row flex--left flex--center-y gap--none lg:gap--xsmall label lg:label--large lg:portrait:label--base">
                 <div class="w--8 lg:w--10 flex flex--center-x flex--center-y">
                   <img src="https://trmnl.com/images/plugins/weather/wi-sunset.svg" class="h--6 lg:h--8" alt="{{ i18n_sunset }}">
                 </div>
                 <span>{{ w.forecast.right_now.sunset }}</span>
               </div>
             </div>
-            <div class="grid grid--cols-12 w--full lg:mt--small te-wind-pressure">
-              <div class="col--span-5 flex flex--row flex--left flex--center-y gap--xsmall label lg:label--large">
+            <div class="grid grid--cols-12 lg:portrait:grid--cols-1 w--full te-wind-pressure">
+              <div class="col--span-5 flex flex--row flex--left flex--center-y gap--xsmall label lg:label--large lg:portrait:label--base">
                 <div class="w--8 lg:w--10 flex flex--center-x flex--center-y">
-                  <img src="https://tempestwx.com/images/Updated/wind-arrow-{{ w.forecast.right_now.wind.direction_cardinal | downcase }}.svg" class="h--6 lg:h--8" style="filter: brightness(0) saturate(0%);" alt="{{ i18n_wind_direction }}">
+                  <img src="https://tempestwx.com/images/Updated/wind-arrow-{{ w.forecast.right_now.wind.direction_cardinal | downcase }}.svg" class="h--6 lg:h--8" data-te-black="true" alt="{{ i18n_wind_direction }}">
                 </div>
-                <span><span style="white-space: nowrap;">{{ w.forecast.right_now.wind.gust }} {{ w.forecast.right_now.wind.units }}</span></span>
+                <span><span class="te-nowrap">{{ w.forecast.right_now.wind.gust }} {{ w.forecast.right_now.wind.units }}</span></span>
               </div>
-              <div class="col--span-7 flex flex--row flex--left flex--center-y gap--none lg:gap--xsmall label lg:label--large">
+              <div class="col--span-7 flex flex--row flex--left flex--center-y gap--none lg:gap--xsmall label lg:label--large lg:portrait:label--base">
                 {% if current_pressure != blank %}
                   <div class="w--8 lg:w--10 flex flex--center-x flex--center-y">
                     <img src="https://trmnl.com/images/plugins/weather/wi-barometer.svg" class="h--6 lg:h--8" alt="{{ i18n_pressure }}">
                   </div>
-                  <div class="flex flex--row flex--left flex--center-y gap--none grow" style="white-space: nowrap; min-width: 0;">
+                  <div class="flex flex--row flex--left flex--center-y gap--none grow" data-te-nowrap="true">
                     <span>{{ current_pressure }} {{ pressure_units }}</span>
                     {% if pressure_trend_icon != blank %}
                       <img src="{{ pressure_trend_icon }}" class="h--6 lg:h--7 pressure-trend-arrow" alt="{{ pressure_trend_alt }}">
@@ -413,7 +177,7 @@
             <div class="te-portrait-extra">{{ te_full_optional_info }}
               {% if information_below_weather_icon == 'both' and lightning_available %}
               <div class="weather-icon-info flex flex--col flex--center-x">
-                <div class="flex flex--row flex--center-x flex--center-y gap--xsmall w--full label lg:label--large">
+                <div class="flex flex--row flex--center-x flex--center-y gap--xsmall w--full label lg:label--large lg:portrait:label--base">
                   <img src="https://trmnl.com/images/plugins/weather/wi-lightning.svg" class="h--5 lg:h--7" alt="{{ i18n_lightning }}">
                   <span class="text--regular">{{ lightning_last_time }} @ {{ lightning_last_distance }} {{ lightning_distance_units }} ({{ lightning_count_1h }} / {{ lightning_count_3h }})</span>
                 </div>
@@ -427,9 +191,9 @@
 
       <div class="col col--span-3 col--end gap--medium h--full te-current-secondary">
         <div class="item lg:grow lg:basis--0">
-          <div class="meta"></div>
+          <div class="meta te-portrait-marker"></div>
           <div class="icon self--center">
-            <img src="https://trmnl.com/images/plugins/weather/wi-thermometer.svg" class="image--adaptive w--[6cqw] h--[6cqw] lg:w--[8cqw] lg:h--[8cqw]" alt="{{ i18n_temperature }}">
+            <img src="https://trmnl.com/images/plugins/weather/wi-thermometer.svg" class="image--adaptive w--[6cqw] lg:w--[8cqw] " alt="{{ i18n_temperature }}">
           </div>
           <div class="content self--center">
             <span class="value value--small lg:value--large">{{ secondary_temperature_value | round }}°</span>
@@ -438,9 +202,9 @@
         </div>
 
         <div class="item lg:grow lg:basis--0">
-          <div class="meta"></div>
+          <div class="meta te-portrait-marker"></div>
           <div class="icon self--center">
-            <img src="https://trmnl.com/images/plugins/weather/wi-raindrops.svg" class="image--adaptive w--[6cqw] h--[6cqw] lg:w--[8cqw] lg:h--[8cqw]" alt="{{ i18n_humidity }}">
+            <img src="https://trmnl.com/images/plugins/weather/wi-raindrops.svg" class="image--adaptive w--[6cqw] lg:w--[8cqw] " alt="{{ i18n_humidity }}">
           </div>
           <div class="content self--center">
             <span class="value value--small lg:value--large">{{ w.humidity }}%</span>
@@ -449,9 +213,9 @@
         </div>
 
         <div class="item lg:grow lg:basis--0">
-          <div class="meta"></div>
+          <div class="meta te-portrait-marker"></div>
           <div class="icon self--center">
-            <img src="{{ w.weather_image }}" class="image--adaptive w--[6cqw] h--[6cqw] lg:w--[8cqw] lg:h--[8cqw] wx-gray" alt="{{ i18n_conditions }}">
+            <img src="{{ w.weather_image }}" class="image--adaptive w--[6cqw] lg:w--[8cqw] wx-gray" alt="{{ i18n_conditions }}">
           </div>
           <div class="content self--center">
             <span class="value value--xsmall lg:value--base" data-value-fit="true" data-value-fit-max-height="96">{{ current_conditions }}</span>
@@ -468,9 +232,9 @@
       <div class="col gap--large">
         <div class="grid grid--cols-12">
           <div class="item col--span-4 lg:col--span-4 grow">
-            <div class="meta"></div>
+            <div class="meta te-portrait-marker"></div>
             <div class="icon self--center">
-              <img src="{{ w.today_weather_image }}" class="image--adaptive w--[6cqw] h--[6cqw] wx-gray" alt="{{ i18n_today }} — {{ i18n_conditions }}">
+              <img src="{{ w.today_weather_image }}" class="image--adaptive w--[6cqw] wx-gray" alt="{{ i18n_today }} — {{ i18n_conditions }}">
             </div>
             <div class="content self--center">
               <span class="value value--small lg:value--base" data-value-fit="true" data-value-fit-max-height="96">{{ today_conditions }}</span>
@@ -479,9 +243,9 @@
           </div>
 
           <div class="item col--span-2 lg:col--span-2 grow">
-            <div class="meta"></div>
+            <div class="meta te-portrait-marker"></div>
             <div class="icon self--center">
-              <img src="https://trmnl.com/images/plugins/weather/wi-hot.svg" class="image--adaptive w--[6cqw] h--[6cqw]" alt="{{ i18n_uv }}">
+              <img src="https://trmnl.com/images/plugins/weather/wi-hot.svg" class="image--adaptive w--[6cqw] " alt="{{ i18n_uv }}">
             </div>
             <div class="content self--center">
               <span class="value value--small lg:value--base">{{ w.forecast.today.uv_index }}</span>
@@ -490,9 +254,9 @@
           </div>
 
           <div class="item col--span-2 lg:col--span-2 grow">
-            <div class="meta"></div>
+            <div class="meta te-portrait-marker"></div>
             <div class="icon self--center">
-              <img src="https://tempestwx.com/images/Updated/{{ w.forecast.today.precip.icon }}.svg" class="image--adaptive w--[4cqw] h--[4cqw] lg:w--[6cqw] lg:h--[6cqw] wx-gray" alt="{{ i18n_precipitation }}">
+              <img src="https://tempestwx.com/images/Updated/{{ w.forecast.today.precip.icon }}.svg" class="image--adaptive w--[4cqw] lg:w--[6cqw] wx-gray" alt="{{ i18n_precipitation }}">
             </div>
             <div class="content self--center">
               <span class="value value--small lg:value--base" data-value-fit="true">{{ w.forecast.today.precip.probability }}%</span>
@@ -504,9 +268,9 @@
 
           <div class="row col--span-4 lg:col--span-4 grow">
             <div class="item">
-              <div class="meta"></div>
+              <div class="meta te-portrait-marker"></div>
               <div class="icon self--center">
-                <img src="https://trmnl.com/images/plugins/weather/wi-thermometer.svg" class="image--adaptive w--[6cqw] h--[6cqw]" alt="{{ i18n_temperature }}">
+                <img src="https://trmnl.com/images/plugins/weather/wi-thermometer.svg" class="image--adaptive w--[6cqw] " alt="{{ i18n_temperature }}">
               </div>
               <div class="grid grid--cols-2 grow self--center gap--medium">
                 <div class="content">
@@ -524,9 +288,9 @@
 
         <div class="grid grid--cols-12">
           <div class="item col--span-4 lg:col--span-4 grow">
-            <div class="meta"></div>
+            <div class="meta te-portrait-marker"></div>
             <div class="icon self--center">
-              <img src="{{ w.tomorrow_weather_image }}" class="image--adaptive w--[6cqw] h--[6cqw] wx-gray" alt="{{ i18n_tomorrow }} — {{ i18n_conditions }}">
+              <img src="{{ w.tomorrow_weather_image }}" class="image--adaptive w--[6cqw] wx-gray" alt="{{ i18n_tomorrow }} — {{ i18n_conditions }}">
             </div>
             <div class="content self--center">
               <span class="value value--small lg:value--base" data-value-fit="true" data-value-fit-max-height="96">{{ tomorrow_conditions }}</span>
@@ -535,9 +299,9 @@
           </div>
 
           <div class="item col--span-2 lg:col--span-2 grow">
-            <div class="meta"></div>
+            <div class="meta te-portrait-marker"></div>
             <div class="icon self--center">
-              <img src="https://trmnl.com/images/plugins/weather/wi-hot.svg" class="image--adaptive w--[6cqw] h--[6cqw]" alt="{{ i18n_uv }}">
+              <img src="https://trmnl.com/images/plugins/weather/wi-hot.svg" class="image--adaptive w--[6cqw] " alt="{{ i18n_uv }}">
             </div>
             <div class="content self--center">
               <span class="value value--small lg:value--base">{{ w.forecast.tomorrow.uv_index }}</span>
@@ -546,20 +310,20 @@
           </div>
 
           <div class="item col--span-2 lg:col--span-2 grow">
-            <div class="meta"></div>
+            <div class="meta te-portrait-marker"></div>
             <div class="icon self--center">
-              <img src="https://tempestwx.com/images/Updated/{{ w.forecast.tomorrow.precip.icon }}.svg" class="image--adaptive w--[4cqw] h--[4cqw] lg:w--[6cqw] lg:h--[6cqw] wx-gray" alt="{{ i18n_precipitation }}">
+              <img src="https://tempestwx.com/images/Updated/{{ w.forecast.tomorrow.precip.icon }}.svg" class="image--adaptive w--[4cqw] lg:w--[6cqw] wx-gray" alt="{{ i18n_precipitation }}">
             </div>
-            <div class="content self--center" style="justify-content: center">
+            <div class="content self--center" data-te-center="true">
               <span class="value value--small lg:value--base" data-value-fit="true">{{ w.forecast.tomorrow.precip.probability }}%</span>
             </div>
           </div>
 
           <div class="row col--span-4 lg:col--span-4 grow">
             <div class="item">
-              <div class="meta"></div>
+              <div class="meta te-portrait-marker"></div>
               <div class="icon self--center">
-                <img src="https://trmnl.com/images/plugins/weather/wi-thermometer.svg" class="image--adaptive w--[6cqw] h--[6cqw]" alt="{{ i18n_temperature }}">
+                <img src="https://trmnl.com/images/plugins/weather/wi-thermometer.svg" class="image--adaptive w--[6cqw] " alt="{{ i18n_temperature }}">
               </div>
               <div class="grid grid--cols-2 grow self--center gap--medium">
                 <div class="content">
@@ -578,10 +342,11 @@
     </div>
   </div>
 
-  <div class="title_bar{{ te_footer_classes }}">
+  {% unless hide_footer %}
+<div class="title_bar{{ te_footer_classes }}">
     <span class="image">t°</span>
     <h1 class="title">{{ i18n_weather }}</h1>
     <span class="instance">{{ trmnl.plugin_settings.instance_name }}{% if footer_refreshed_at != blank %} ({{ footer_refreshed_at }}){% endif %}</span>
   </div>
-</div>
+{% endunless %}
 {%- endif -%}

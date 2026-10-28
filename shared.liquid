@@ -1,0 +1,178 @@
+{%- assign w = tempest_source -%}
+{%- assign w = w.merge_variables | default: w -%}
+
+{%- assign locale = trmnl.user.locale -%}
+{%- assign i18n_weather = 'weather' | l_word: locale -%}
+{%- assign i18n_temperature = 'temperature' | l_word: locale -%}
+{%- assign i18n_feels_like = 'feels_like' | l_word: locale -%}
+{%- assign i18n_wbt_short = 'wet_bulb_temperature_short' | l_word: locale -%}
+{%- assign i18n_wbgt_short = 'wet_bulb_globe_temperature_short' | l_word: locale -%}
+{%- assign i18n_humidity = 'humidity' | l_word: locale -%}
+{%- assign i18n_pressure = 'pressure' | l_word: locale -%}
+{%- assign i18n_pressure_rising = 'pressure_rising' | l_word: locale -%}
+{%- assign i18n_pressure_steady = 'pressure_steady' | l_word: locale -%}
+{%- assign i18n_pressure_falling = 'pressure_falling' | l_word: locale -%}
+{%- assign i18n_wind_direction = 'wind_direction' | l_word: locale -%}
+{%- assign i18n_precipitation = 'precipitation' | l_word: locale -%}
+{%- assign i18n_uv = 'uv' | l_word: locale -%}
+{%- assign i18n_uv_short = 'uv_short' | l_word: locale -%}
+{%- assign i18n_lightning = 'lightning' | l_word: locale -%}
+{%- assign i18n_solar_radiation = 'solar_radiation' | l_word: locale -%}
+{%- assign i18n_conditions = 'conditions' | l_word: locale -%}
+{%- assign i18n_right_now = 'right_now' | l_word: locale -%}
+{%- assign i18n_today = 'today' | l_word: locale -%}
+{%- assign i18n_tomorrow = 'tomorrow' | l_word: locale -%}
+{%- assign i18n_sunrise = 'sunrise' | l_word: locale -%}
+{%- assign i18n_sunset = 'sunset' | l_word: locale -%}
+{%- assign i18n_min = 'min' | l_word: locale -%}
+{%- assign i18n_max = 'max' | l_word: locale -%}
+
+{%- assign information_below_weather_icon = trmnl.plugin_settings.custom_fields_values.information_below_weather_icon | default: 'none' -%}
+
+{%- assign secondary_temperature_measurement = trmnl.plugin_settings.custom_fields_values.secondary_temperature_measurement | default: 'feels_like' -%}
+
+{%- assign secondary_temperature_value = w.feels_like | default: w.meta.current_conditions.feels_like -%}
+{%- assign secondary_temperature_label = i18n_feels_like -%}
+
+{%- if secondary_temperature_measurement == 'wet_bulb_temperature' -%}
+  {%- assign selected_secondary_value = w.meta.current_conditions.wet_bulb_temperature -%}
+  {%- if selected_secondary_value != blank -%}
+    {%- assign secondary_temperature_value = selected_secondary_value -%}
+    {%- assign secondary_temperature_label = i18n_wbt_short -%}
+  {%- endif -%}
+{%- elsif secondary_temperature_measurement == 'wet_bulb_globe_temperature' -%}
+  {%- assign selected_secondary_value = w.meta.current_conditions.wet_bulb_globe_temperature -%}
+  {%- if selected_secondary_value != blank -%}
+    {%- assign secondary_temperature_value = selected_secondary_value -%}
+    {%- assign secondary_temperature_label = i18n_wbgt_short -%}
+  {%- endif -%}
+{%- endif -%}
+
+{%- assign lightning_last_epoch = w.meta.current_conditions.lightning_strike_last_epoch -%}
+{%- assign lightning_last_distance = w.meta.current_conditions.lightning_strike_last_distance -%}
+{%- assign lightning_count_1h = w.meta.current_conditions.lightning_strike_count_last_1hr -%}
+{%- assign lightning_count_3h = w.meta.current_conditions.lightning_strike_count_last_3hr -%}
+{%- assign lightning_distance_units = w.meta.units.units_distance -%}
+{%- assign lightning_available = false -%}
+{%- assign lightning_last_time = blank -%}
+
+{%- assign lightning_now_utc = trmnl.system.timestamp_utc | plus: 0 -%}
+{%- assign lightning_last_epoch_num = lightning_last_epoch | plus: 0 -%}
+
+{%- if lightning_last_epoch != blank
+      and lightning_last_distance != blank
+      and lightning_count_1h != blank
+      and lightning_count_3h != blank
+      and lightning_distance_units != blank
+      and lightning_last_epoch_num > 0
+      and lightning_count_3h > 0
+      and lightning_now_utc >= lightning_last_epoch_num -%}
+  {%- assign lightning_age_seconds = lightning_now_utc | minus: lightning_last_epoch_num -%}
+  {%- if lightning_age_seconds <= 10800 -%}
+    {%- assign lightning_local_epoch = lightning_last_epoch_num | plus: w.utc_offset -%}
+    {%- assign lightning_last_time = lightning_local_epoch | date: '%H:%M' -%}
+    {%- assign lightning_available = true -%}
+  {%- endif -%}
+{%- endif -%}
+
+{%- assign solar_radiation = w.meta.current_conditions.solar_radiation -%}
+{%- assign current_brightness = w.meta.current_conditions.brightness -%}
+{%- assign solar_available = false -%}
+{%- if solar_radiation != blank or current_brightness != blank -%}
+  {%- assign solar_available = true -%}
+{%- endif -%}
+
+{%- assign pressure_source_raw = trmnl.plugin_settings.custom_fields_values.pressure_source | default: 'sea_level' -%}
+{%- assign pressure_source = pressure_source_raw | strip | downcase | replace: ' ', '_' -%}
+{%- if pressure_source == 'station' -%}
+  {%- assign raw_pressure_mb = w.meta.current_conditions.station_pressure -%}
+{%- else -%}
+  {%- assign raw_pressure_mb = w.meta.current_conditions.sea_level_pressure -%}
+{%- endif -%}
+{%- assign pressure_unit_raw = trmnl.plugin_settings.custom_fields_values.pressure_unit | default: 'hpa' -%}
+{%- assign pressure_unit_key = pressure_unit_raw | strip | downcase -%}
+
+{%- case pressure_unit_key -%}
+  {%- when 'inhg' -%}
+    {%- assign pressure_units = 'inHg' -%}
+  {%- when 'mmhg' -%}
+    {%- assign pressure_units = 'mmHg' -%}
+  {%- when 'mb' -%}
+    {%- assign pressure_units = 'mb' -%}
+  {%- else -%}
+    {%- assign pressure_units = 'hPa' -%}
+{%- endcase -%}
+
+{%- if raw_pressure_mb == blank -%}
+  {%- assign current_pressure = '---' -%}
+{%- else -%}
+  {%- case pressure_unit_key -%}
+    {%- when 'inhg' -%}
+      {%- assign current_pressure = raw_pressure_mb | times: 0.0295299830714 | round: 2 -%}
+    {%- when 'mmhg' -%}
+      {%- assign current_pressure = raw_pressure_mb | times: 0.750061683 | round: 1 -%}
+    {%- when 'mb' -%}
+      {%- assign current_pressure = raw_pressure_mb | round: 1 -%}
+    {%- else -%}
+      {%- assign current_pressure = raw_pressure_mb | round: 1 -%}
+  {%- endcase -%}
+{%- endif -%}
+
+{%- assign pressure_trend = w.meta.current_conditions.pressure_trend | downcase -%}
+{%- assign pressure_trend_icon = blank -%}
+{%- assign pressure_trend_alt = '' -%}
+{%- case pressure_trend -%}
+  {%- when 'rising' -%}
+    {%- assign pressure_trend_icon = 'https://trmnl.com/images/plugins/weather/wi-direction-up.svg' -%}
+    {%- assign pressure_trend_alt = i18n_pressure_rising -%}
+  {%- when 'falling' -%}
+    {%- assign pressure_trend_icon = 'https://trmnl.com/images/plugins/weather/wi-direction-down.svg' -%}
+    {%- assign pressure_trend_alt = i18n_pressure_falling -%}
+  {%- when 'steady' -%}
+    {%- assign pressure_trend_icon = 'https://trmnl.com/images/plugins/weather/wi-direction-right.svg' -%}
+    {%- assign pressure_trend_alt = i18n_pressure_steady -%}
+{%- endcase -%}
+{%- assign main_temperature = w.temperature | round -%}
+{%- assign main_temperature_chars = main_temperature | append: '' | size -%}
+{%- assign main_temperature_class = 'value--xxxlarge' -%}
+{%- assign main_temperature_lg_class = 'lg:value--giga' -%}
+
+{%- if main_temperature >= 100 or main_temperature <= -10 -%}
+  {%- assign main_temperature_class = 'value--xxlarge' -%}
+{%- endif -%}
+
+{%- if main_temperature >= 100 or main_temperature <= -10 -%}
+  {%- assign main_temperature_lg_class = 'lg:value--xxxlarge' -%}
+{%- elsif main_temperature >= 10 or main_temperature < 0 -%}
+  {%- assign main_temperature_lg_class = 'lg:value--mega' -%}
+{%- endif -%}
+
+{%- assign current_conditions = w.right_now_conditions | default: w.forecast.right_now.conditions -%}
+{%- assign today_conditions = w.today_conditions | default: w.forecast.today.conditions -%}
+{%- assign tomorrow_conditions = w.forecast.tomorrow.conditions -%}
+
+{%- assign footer_refreshed_at = w.refreshed_at -%}
+{%- if footer_refreshed_at == blank -%}
+  {%- assign footer_utc_offset = w.utc_offset | default: trmnl.user.utc_offset | default: 0 -%}
+  {%- assign footer_local_epoch = trmnl.system.timestamp_utc | plus: footer_utc_offset -%}
+  {%- assign footer_refreshed_at = footer_local_epoch | date: '%H:%M' -%}
+{%- endif -%}
+
+{%- assign today_label = w.forecast.today.day_override -%}
+{%- if today_label == blank -%}{%- assign today_label = i18n_today -%}{%- endif -%}
+{%- assign tomorrow_label = w.forecast.tomorrow.day_override -%}
+{%- if tomorrow_label == blank -%}{%- assign tomorrow_label = i18n_tomorrow -%}{%- endif -%}
+
+{%- comment -%}
+TRMNL evaluates Shared before each view. Device dimensions are the full device,
+not the mashup slot; use either orientation to select the OG/X footer policy.
+Unknown dimensions keep the footer visible.
+{%- endcomment -%}
+{%- assign te_device_width = trmnl.device.width | default: 0 | plus: 0 -%}
+{%- assign te_device_height = trmnl.device.height | default: 0 | plus: 0 -%}
+{%- assign te_device_family = '' -%}
+{%- if te_device_width == 1872 or te_device_height == 1872 -%}
+  {%- assign te_device_family = 'x' -%}
+{%- elsif te_device_width == 800 or te_device_height == 800 -%}
+  {%- assign te_device_family = 'og' -%}
+{%- endif -%}

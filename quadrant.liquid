@@ -1,167 +1,3 @@
-{%- assign w = tempest_source -%}
-{%- assign w = w.merge_variables | default: w -%}
-
-{%- assign locale = trmnl.user.locale -%}
-{%- assign i18n_weather = 'weather' | l_word: locale -%}
-{%- assign i18n_temperature = 'temperature' | l_word: locale -%}
-{%- assign i18n_feels_like = 'feels_like' | l_word: locale -%}
-{%- assign i18n_wbt_short = 'wet_bulb_temperature_short' | l_word: locale -%}
-{%- assign i18n_wbgt_short = 'wet_bulb_globe_temperature_short' | l_word: locale -%}
-{%- assign i18n_humidity = 'humidity' | l_word: locale -%}
-{%- assign i18n_pressure = 'pressure' | l_word: locale -%}
-{%- assign i18n_pressure_rising = 'pressure_rising' | l_word: locale -%}
-{%- assign i18n_pressure_steady = 'pressure_steady' | l_word: locale -%}
-{%- assign i18n_pressure_falling = 'pressure_falling' | l_word: locale -%}
-{%- assign i18n_wind_direction = 'wind_direction' | l_word: locale -%}
-{%- assign i18n_precipitation = 'precipitation' | l_word: locale -%}
-{%- assign i18n_uv = 'uv' | l_word: locale -%}
-{%- assign i18n_uv_short = 'uv_short' | l_word: locale -%}
-{%- assign i18n_lightning = 'lightning' | l_word: locale -%}
-{%- assign i18n_solar_radiation = 'solar_radiation' | l_word: locale -%}
-{%- assign i18n_conditions = 'conditions' | l_word: locale -%}
-{%- assign i18n_right_now = 'right_now' | l_word: locale -%}
-{%- assign i18n_today = 'today' | l_word: locale -%}
-{%- assign i18n_tomorrow = 'tomorrow' | l_word: locale -%}
-{%- assign i18n_sunrise = 'sunrise' | l_word: locale -%}
-{%- assign i18n_sunset = 'sunset' | l_word: locale -%}
-{%- assign i18n_min = 'min' | l_word: locale -%}
-{%- assign i18n_max = 'max' | l_word: locale -%}
-
-{%- assign information_below_weather_icon = trmnl.plugin_settings.custom_fields_values.information_below_weather_icon | default: 'none' -%}
-
-{%- assign secondary_temperature_measurement = trmnl.plugin_settings.custom_fields_values.secondary_temperature_measurement | default: 'feels_like' -%}
-
-{%- assign secondary_temperature_value = w.feels_like | default: w.meta.current_conditions.feels_like -%}
-{%- assign secondary_temperature_label = i18n_feels_like -%}
-
-{%- if secondary_temperature_measurement == 'wet_bulb_temperature' -%}
-  {%- assign selected_secondary_value = w.meta.current_conditions.wet_bulb_temperature -%}
-  {%- if selected_secondary_value != blank -%}
-    {%- assign secondary_temperature_value = selected_secondary_value -%}
-    {%- assign secondary_temperature_label = i18n_wbt_short -%}
-  {%- endif -%}
-{%- elsif secondary_temperature_measurement == 'wet_bulb_globe_temperature' -%}
-  {%- assign selected_secondary_value = w.meta.current_conditions.wet_bulb_globe_temperature -%}
-  {%- if selected_secondary_value != blank -%}
-    {%- assign secondary_temperature_value = selected_secondary_value -%}
-    {%- assign secondary_temperature_label = i18n_wbgt_short -%}
-  {%- endif -%}
-{%- endif -%}
-
-{%- assign lightning_last_epoch = w.meta.current_conditions.lightning_strike_last_epoch -%}
-{%- assign lightning_last_distance = w.meta.current_conditions.lightning_strike_last_distance -%}
-{%- assign lightning_count_1h = w.meta.current_conditions.lightning_strike_count_last_1hr -%}
-{%- assign lightning_count_3h = w.meta.current_conditions.lightning_strike_count_last_3hr -%}
-{%- assign lightning_distance_units = w.meta.units.units_distance -%}
-{%- assign lightning_available = false -%}
-{%- assign lightning_last_time = blank -%}
-
-{%- assign lightning_now_utc = trmnl.system.timestamp_utc | plus: 0 -%}
-{%- assign lightning_last_epoch_num = lightning_last_epoch | plus: 0 -%}
-
-{%- if lightning_last_epoch != blank
-      and lightning_last_distance != blank
-      and lightning_count_1h != blank
-      and lightning_count_3h != blank
-      and lightning_distance_units != blank
-      and lightning_last_epoch_num > 0
-      and lightning_count_3h > 0
-      and lightning_now_utc >= lightning_last_epoch_num -%}
-  {%- assign lightning_age_seconds = lightning_now_utc | minus: lightning_last_epoch_num -%}
-  {%- if lightning_age_seconds <= 10800 -%}
-    {%- assign lightning_local_epoch = lightning_last_epoch_num | plus: w.utc_offset -%}
-    {%- assign lightning_last_time = lightning_local_epoch | date: '%H:%M' -%}
-    {%- assign lightning_available = true -%}
-  {%- endif -%}
-{%- endif -%}
-
-{%- assign solar_radiation = w.meta.current_conditions.solar_radiation -%}
-{%- assign current_brightness = w.meta.current_conditions.brightness -%}
-{%- assign solar_available = false -%}
-{%- if solar_radiation != blank or current_brightness != blank -%}
-  {%- assign solar_available = true -%}
-{%- endif -%}
-
-{%- assign pressure_source_raw = trmnl.plugin_settings.custom_fields_values.pressure_source | default: 'sea_level' -%}
-{%- assign pressure_source = pressure_source_raw | strip | downcase | replace: ' ', '_' -%}
-{%- if pressure_source == 'station' -%}
-  {%- assign raw_pressure_mb = w.meta.current_conditions.station_pressure -%}
-{%- else -%}
-  {%- assign raw_pressure_mb = w.meta.current_conditions.sea_level_pressure -%}
-{%- endif -%}
-{%- assign pressure_unit_raw = trmnl.plugin_settings.custom_fields_values.pressure_unit | default: 'hpa' -%}
-{%- assign pressure_unit_key = pressure_unit_raw | strip | downcase -%}
-
-{%- case pressure_unit_key -%}
-  {%- when 'inhg' -%}
-    {%- assign pressure_units = 'inHg' -%}
-  {%- when 'mmhg' -%}
-    {%- assign pressure_units = 'mmHg' -%}
-  {%- when 'mb' -%}
-    {%- assign pressure_units = 'mb' -%}
-  {%- else -%}
-    {%- assign pressure_units = 'hPa' -%}
-{%- endcase -%}
-
-{%- if raw_pressure_mb == blank -%}
-  {%- assign current_pressure = '---' -%}
-{%- else -%}
-  {%- case pressure_unit_key -%}
-    {%- when 'inhg' -%}
-      {%- assign current_pressure = raw_pressure_mb | times: 0.0295299830714 | round: 2 -%}
-    {%- when 'mmhg' -%}
-      {%- assign current_pressure = raw_pressure_mb | times: 0.750061683 | round: 1 -%}
-    {%- when 'mb' -%}
-      {%- assign current_pressure = raw_pressure_mb | round: 1 -%}
-    {%- else -%}
-      {%- assign current_pressure = raw_pressure_mb | round: 1 -%}
-  {%- endcase -%}
-{%- endif -%}
-
-{%- assign pressure_trend = w.meta.current_conditions.pressure_trend | downcase -%}
-{%- assign pressure_trend_icon = blank -%}
-{%- assign pressure_trend_alt = '' -%}
-{%- case pressure_trend -%}
-  {%- when 'rising' -%}
-    {%- assign pressure_trend_icon = 'https://trmnl.com/images/plugins/weather/wi-direction-up.svg' -%}
-    {%- assign pressure_trend_alt = i18n_pressure_rising -%}
-  {%- when 'falling' -%}
-    {%- assign pressure_trend_icon = 'https://trmnl.com/images/plugins/weather/wi-direction-down.svg' -%}
-    {%- assign pressure_trend_alt = i18n_pressure_falling -%}
-  {%- when 'steady' -%}
-    {%- assign pressure_trend_icon = 'https://trmnl.com/images/plugins/weather/wi-direction-right.svg' -%}
-    {%- assign pressure_trend_alt = i18n_pressure_steady -%}
-{%- endcase -%}
-{%- assign main_temperature = w.temperature | round -%}
-{%- assign main_temperature_class = 'value--xxxlarge' -%}
-{%- assign main_temperature_lg_class = 'lg:value--tera' -%}
-
-{%- if main_temperature >= 100 or main_temperature <= -10 -%}
-  {%- assign main_temperature_class = 'value--xxlarge' -%}
-{%- endif -%}
-
-{%- if main_temperature >= 100 or main_temperature <= -10 -%}
-  {%- assign main_temperature_lg_class = 'lg:value--mega' -%}
-{%- elsif main_temperature >= 10 or main_temperature < 0 -%}
-  {%- assign main_temperature_lg_class = 'lg:value--giga' -%}
-{%- endif -%}
-
-{%- assign current_conditions = w.right_now_conditions | default: w.forecast.right_now.conditions -%}
-{%- assign today_conditions = w.today_conditions | default: w.forecast.today.conditions -%}
-{%- assign tomorrow_conditions = w.forecast.tomorrow.conditions -%}
-
-{%- assign footer_refreshed_at = w.refreshed_at -%}
-{%- if footer_refreshed_at == blank -%}
-  {%- assign footer_utc_offset = w.utc_offset | default: trmnl.user.utc_offset | default: 0 -%}
-  {%- assign footer_local_epoch = trmnl.system.timestamp_utc | plus: footer_utc_offset -%}
-  {%- assign footer_refreshed_at = footer_local_epoch | date: '%H:%M' -%}
-{%- endif -%}
-
-{%- assign today_label = w.forecast.today.day_override -%}
-{%- if today_label == blank -%}{%- assign today_label = i18n_today -%}{%- endif -%}
-{%- assign tomorrow_label = w.forecast.tomorrow.day_override -%}
-{%- if tomorrow_label == blank -%}{%- assign tomorrow_label = i18n_tomorrow -%}{%- endif -%}
-
 {%- assign te_footer_classes = '' -%}
 {%- assign te_footer_policy = trmnl.plugin_settings.custom_fields_values.footer_visibility_og | default: 'show' -%}
 {%- if te_footer_policy == 'hide_all' or te_footer_policy == 'hide_quadrant' or te_footer_policy == 'hide_partial' -%}
@@ -172,226 +8,143 @@
 {%- assign te_footer_classes = te_footer_classes | append: ' te-footer-hide-x' -%}
 {%- endif -%}
 
-<style>
-/* scoped sizing and shared forecast columns. */
-.layout.te-partial:where(.te-quadrant) {
- display:grid; width:100%; min-width:0; align-items:stretch; align-content:stretch;
- justify-content:stretch; grid-template-columns:minmax(0,1fr);
- grid-template-rows:1.3fr auto auto auto 1.2fr; gap:8px;
- font-family:Arial,Helvetica,sans-serif; font-size:16px; line-height:1.15;
-}
-.te-partial:where(.te-quadrant) * { box-sizing:border-box; min-width:0; }
-.te-partial:where(.te-quadrant) .te-current { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; column-gap:14px; }
-.te-partial:where(.te-quadrant) .te-weather { width:100px; height:100px; object-fit:contain; grid-row:1 / 3; filter:brightness(.5) grayscale(1); }
-.te-partial:where(.te-quadrant) .te-temp { font-size:68px; line-height:1; font-weight:700; white-space:nowrap; align-self:end; }
-.te-partial:where(.te-quadrant) .te-condition { align-self:start; overflow-wrap:anywhere; font-size:1em; }
-.te-partial:where(.te-quadrant) .te-metrics { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; align-content:center; }
-.te-partial:where(.te-quadrant) .te-metric { display:flex; align-items:center; gap:5px; }
-.te-partial:where(.te-quadrant) .te-primary-metric { flex-direction:column-reverse; align-items:flex-start; gap:3px; }
-.te-partial:where(.te-quadrant) .te-primary-metric strong { font-size:1.5em; }
-.te-partial:where(.te-quadrant) .te-primary-metric > span { font-size:.8em; }
-.te-partial:where(.te-quadrant) .te-icon { width:22px; height:22px; object-fit:contain; flex-shrink:0; }
-.te-partial:where(.te-quadrant) .te-number { white-space:nowrap; }
-.te-partial:where(.te-quadrant) .te-sun { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.te-partial:where(.te-quadrant) .te-extra { display:flex; align-items:center; gap:5px; font-size:.85em; }
-.te-partial:where(.te-quadrant) .te-forecast { display:grid; grid-template-rows:1fr 1fr; border-top:1px solid; min-width:0; }
-.te-partial:where(.te-quadrant) .te-day { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:6px 10px; padding:10px 0; align-content:center; }
-.te-partial:where(.te-quadrant) .te-day + .te-day { border-top:1px solid #aaa; }
-.te-partial:where(.te-quadrant) .te-day-title { font-size:1em; }
-.te-partial:where(.te-quadrant) .te-day-temp { text-align:right; font-weight:700; font-size:1.1em; }
-.te-partial:where(.te-quadrant) .te-day-condition { grid-column:1 / -1; overflow-wrap:anywhere; font-size:.85em; }
-.te-partial:where(.te-quadrant) .te-day-detail { grid-column:1 / -1; display:grid; grid-template-columns:.65fr 1fr 1fr; gap:6px; font-size:.85em; align-items:start; }
-.te-partial:where(.te-quadrant) .te-precip { display:flex; flex-direction:column; gap:3px; }
-.te-partial:where(.te-quadrant) .te-precip-label { font-size:.8em; }
-.te-partial:where(.te-quadrant) .te-amount { text-align:right; }
-.layout.te-quadrant { font-size:17.2px; gap:5px; grid-template-rows:1.2fr auto auto auto 1fr; }
-.te-quadrant .te-weather { width:192.0px; height:192.0px; }
-.te-quadrant .te-temp { font-size:73.0px; }
-.te-quadrant .te-primary-metric { flex-direction:row; align-items:baseline; }
-.te-quadrant .te-primary-metric strong { font-size:1.15em; }
-.te-quadrant .te-icon { width:16px; height:16px; }
-.te-quadrant .te-metrics { gap:4px 10px; }
-.te-quadrant .te-day { padding:5px 0; gap:3px 8px; }
-.te-quadrant .te-day-condition { display:none; }
-.te-quadrant .te-precip { flex-direction:row; align-items:baseline; }
-.te-quadrant .te-precip-label { font-size:1em; }
-.te-quadrant .te-day-detail { grid-template-columns:.6fr 1.3fr 1fr; }
-@media (min-width:1000px) {
- .layout.te-partial:where(.te-quadrant) { font-size:23px; gap:10px; }
- .te-partial:where(.te-quadrant) .te-weather { width:130px; height:130px; }
- .te-partial:where(.te-quadrant) .te-temp { font-size:96px; }
- .te-partial:where(.te-quadrant) .te-icon { width:28px; height:28px; }
- .layout.te-quadrant { font-size:26.4px; gap:6px; }
- .te-quadrant .te-weather { width:282.0px; height:282.0px; }
- .te-quadrant .te-temp { font-size:109.5px; }
- .te-quadrant .te-icon { width:23px; height:23px; }
- .te-quadrant .te-day { padding:6px 0; gap:4px; }
-}
-/* Keep the footer inside its slot even with a long instance name. */
-.te-title .title { flex-shrink:0; }
-.te-title .instance { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+{%- assign hide_footer = false -%}
+{%- if te_device_family == 'og' and te_footer_classes contains 'te-footer-hide-og' -%}
+  {%- assign hide_footer = true -%}
+{%- elsif te_device_family == 'x' and te_footer_classes contains 'te-footer-hide-x' -%}
+  {%- assign hide_footer = true -%}
+{%- endif -%}
 
-/* precipitation stays with its probability, independent of availability. */
+<style>
+/* Scoped geometry supplements native responsive utilities. */
+.te-partial .te-forecast-row { grid-row:5; }
+.layout.te-partial:where(.te-quadrant) { display:grid;width:100%;min-width:0;align-items:stretch;align-content:stretch;justify-content:stretch;grid-template-columns:minmax(0,1fr);grid-template-rows:1.3fr auto auto auto 1.2fr;gap:8px; }
+.te-partial:where(.te-quadrant) * { box-sizing:border-box;min-width:0; }
+.te-partial:where(.te-quadrant) .te-current { display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:14px; }
+.te-partial:where(.te-quadrant) .te-weather { width:100px;height:100px;object-fit:contain;grid-row:1 / 3;filter:brightness(.5) grayscale(1); }
+.te-partial:where(.te-quadrant) .te-temp { white-space:nowrap;align-self:end; }
+.te-partial:where(.te-quadrant) .te-condition { align-self:start;overflow-wrap:anywhere; }
+.te-partial:where(.te-quadrant) .te-metrics { gap:8px 12px;align-content:center; }
+.te-partial:where(.te-quadrant) .te-metric {gap:5px; }
+.te-partial:where(.te-quadrant) .te-primary-metric { flex-direction:column-reverse;align-items:flex-start;gap:3px; }
+.te-partial:where(.te-quadrant) .te-icon { width:22px;height:22px;object-fit:contain;flex-shrink:0; }
+.te-partial:where(.te-quadrant) .te-number { white-space:nowrap; }
+.te-partial:where(.te-quadrant) .te-sun { gap:12px; }
+.te-partial:where(.te-quadrant) .te-extra { display:flex;align-items:center;gap:5px; }
+.te-partial:where(.te-quadrant) .te-forecast { display:grid;grid-template-rows:1fr 1fr;border-top:1px solid;min-width:0; }
+.te-partial:where(.te-quadrant) .te-day { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 10px;padding:10px 0;align-content:center; }
+
+
+.te-partial:where(.te-quadrant) .te-day-condition { grid-column:1 / -1;overflow-wrap:anywhere; }
+.te-partial:where(.te-quadrant) .te-day-detail { grid-column:1 / -1;display:grid;gap:6px;align-items:start; }
+.te-partial:where(.te-quadrant) .te-precip { display:flex;flex-direction:column;gap:3px; }
+.te-quadrant .te-weather { width:192.0px;height:192.0px; }
+.te-quadrant .te-primary-metric { flex-direction:row;align-items:baseline; }
+.te-quadrant .te-icon { width:16px;height:16px; }
+.te-quadrant .te-metrics { gap:4px 10px; }
+.te-quadrant .te-day { padding:5px 0;gap:3px 8px; }
+
+.te-quadrant .te-precip { flex-direction:row;align-items:baseline; }
+.te-title .title { flex-shrink:0; }
+.te-title .instance { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .te-partial:where(.te-quadrant) .te-amount { text-align:left; }
 .te-partial:where(.te-quadrant) .te-day-detail { grid-template-columns:.65fr 1fr; }
-.te-partial:where(.te-quadrant) .te-forecast-icon { object-fit:contain; filter:brightness(.5) grayscale(1); }
+.te-partial:where(.te-quadrant) .te-forecast-icon { object-fit:contain;filter:brightness(.5) grayscale(1); }
 .te-quadrant .te-day-detail { grid-template-columns:.6fr 2.3fr; }
-.te-quadrant .te-precip { flex-wrap:wrap; gap:5px; }
+.te-quadrant .te-precip { flex-wrap:wrap;gap:5px; }
 .te-quadrant .te-amount { margin-left:4px; }
-@media (min-width:1000px) {
- .te-quadrant .te-weather { width:564.0px; height:564.0px; }
- .te-quadrant .te-temp { font-size:219.0px; }
- .te-quadrant .te-current { grid-template-columns:auto minmax(0,1fr); }
-}
-
-/* requested typography steps; auxiliary readings isolated. */
-
-.te-quadrant .te-metrics > .te-metric:not(.te-primary-metric),
-.te-quadrant .te-sun { font-size:13px; }
 .te-quadrant .te-weather { max-width:none; }
-@media (min-width:1000px) {
- .te-quadrant .te-metrics > .te-metric:not(.te-primary-metric),
- .te-quadrant .te-sun { font-size:20px; }
-}
-
-/* native type steps; only the requested current readings change. */
-.te-quadrant .te-temp { font-size:var(--value-xxlarge-font-size,96px); }
-.te-quadrant .te-condition { font-size:var(--label-large-font-size,21px); }
-.te-quadrant .te-primary-metric > strong { font-size:var(--value-small-font-size,26px); }
-.te-quadrant .te-primary-metric > span { font-size:var(--label-large-font-size,21px); }
-@media (min-width:1000px) {
- .te-quadrant .te-temp { font-size:var(--value-tera-font-size,290px); }
- .te-quadrant .te-condition { font-size:var(--value-font-size,38px); }
- .te-quadrant .te-primary-metric > strong { font-size:var(--value-font-size,38px); }
- .te-quadrant .te-primary-metric > span { font-size:var(--label-xlarge-font-size,26px); }
-}
-
-/* auxiliary labels advance to the next native size. */
-.te-quadrant .te-metrics > .te-metric:not(.te-primary-metric),
-.te-quadrant .te-sun { font-size:var(--label-font-size,16px); }
 .te-quadrant .te-metrics > .te-metric:not(.te-primary-metric) .te-icon,
-.te-quadrant .te-sun .te-icon { width:1.25em; height:1.25em; }
-/* Weather SVGs have empty space above/below their artwork. Remove that
-   space from grid sizing without shrinking the displayed artwork. */
-.layout.te-quadrant { grid-template-rows:minmax(124px,1fr) auto auto auto minmax(90px,1fr); gap:4px; }
-.te-quadrant .te-current { position:relative; grid-template-columns:192px minmax(0,1fr); min-height:124px; }
-.te-quadrant .te-current > .te-weather { position:absolute; left:0; top:50%; transform:translateY(-50%); }
-.te-quadrant .te-current > .te-temp { grid-column:2; grid-row:1; }
-.te-quadrant .te-current > .te-condition { grid-column:2; grid-row:2; }
-@media (min-width:1000px) {
- .te-quadrant .te-metrics > .te-metric:not(.te-primary-metric),
- .te-quadrant .te-sun { font-size:var(--label-xlarge-font-size,26px); }
- .layout.te-quadrant { grid-template-rows:minmax(320px,1fr) auto auto auto minmax(130px,1fr); gap:6px; }
- .te-quadrant .te-current { grid-template-columns:564px minmax(0,1fr); min-height:320px; }
-}
+.te-quadrant .te-sun .te-icon { width:1.25em;height:1.25em; }
+.layout.te-quadrant { grid-template-rows:minmax(124px,1fr) auto auto auto minmax(90px,1fr);gap:4px; }
+.te-quadrant .te-current { position:relative;grid-template-columns:192px minmax(0,1fr);min-height:124px; }
+.te-quadrant .te-current > .te-weather { position:absolute;left:0;top:50%;transform:translateY(-50%); }
+.te-quadrant .te-current > .te-temp { grid-column:2;grid-row:1; }
+.te-quadrant .te-current > .te-condition { grid-column:2;grid-row:2; }
+.screen--md .layout.te-quadrant { grid-template-columns:1.6fr 1fr 1fr 1fr;gap:3px 5px; }
+.screen--md .te-quadrant .te-current { grid-row:1; }
+.screen--md .te-quadrant .te-metrics, .screen--md .te-quadrant .te-sun { display:contents; }
+.screen--md .te-quadrant .te-metrics > .te-metric:nth-child(3) { grid-column:1;grid-row:3; }
+.screen--md .te-quadrant .te-metrics > .te-metric:nth-child(4) { grid-column:2;grid-row:3; }
+.screen--md .te-quadrant .te-sun > .te-metric:nth-child(1) { grid-column:3;grid-row:3; }
+.screen--md .te-quadrant .te-sun > .te-metric:nth-child(2) { grid-column:4;grid-row:3; }
+.screen--md .te-quadrant .te-extra { grid-column:1 / -1;grid-row:4; }
+.screen--md .te-quadrant .te-forecast { grid-column:1 / -1;grid-row:5;grid-template-columns:1fr 1fr;grid-template-rows:auto;gap:8px; }
+.screen--md .te-quadrant .te-day { padding:3px 0 0;gap:2px 4px; }
+.screen--md .te-quadrant .te-day + .te-day { padding-left:8px; }
+.screen--md .te-quadrant .te-day-detail { display:flex; }
+.screen--md .te-quadrant .te-precip { gap:3px; }
+.screen--md .te-quadrant .te-current { grid-column:1 / -1; }
+.screen--md .te-quadrant .te-primary-metric { grid-row:1;align-self:center;justify-self:end;flex-direction:column-reverse;align-items:flex-start;gap:1px;margin:0; }
+.screen--md .te-quadrant .te-primary-metric:nth-child(1) { grid-column:3 / 5;transform:translateY(-32px); }
+.screen--md .te-quadrant .te-primary-metric:nth-child(2) { grid-column:3 / 5;transform:translateY(16px); }
+.screen--md .te-quadrant .te-metrics > .te-metric:not(.te-primary-metric) .te-icon,
+.screen--md .te-quadrant .te-sun .te-icon,
+.screen--md .te-quadrant .te-extra .te-icon { width:1.25em;height:1.25em; }
+.screen--lg .te-quadrant .te-primary-metric { column-gap:12px; }
+.screen--md .te-quadrant .te-current { width:calc(100% - 96px); }
+.screen--md .te-quadrant .te-primary-metric { width:88px; }
+.te-partial .te-extra-both { display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px; }
+.te-partial .te-extra-reading { display:inline-flex;align-items:center;gap:4px;white-space:nowrap; }
+.screen--lg .te-quadrant .te-extra-both { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px; }
+.screen--lg .te-quadrant .te-lightning-reading { grid-column:2; }
+.screen--md .te-quadrant .te-extra-both { display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;column-gap:5px; }
+.screen--md .te-quadrant .te-solar-reading { grid-column:1 / 3; }
+.screen--md .te-quadrant .te-lightning-reading { grid-column:3 / 5; }
+.screen--lg.screen--portrait .te-quadrant .te-weather { width:153.6px;height:153.6px; }
+.screen--lg.screen--portrait .te-quadrant .te-current { grid-template-columns:153.6px minmax(0,1fr);column-gap:8px; }
+.screen--lg.screen--portrait .te-quadrant .te-condition-wrap { white-space:normal !important;overflow-wrap:break-word;word-break:normal;width:100%;max-width:100%;height:auto;max-height:none;overflow:visible; }
+.screen--lg.screen--portrait .te-quadrant .te-current { grid-template-rows:auto auto;min-height:min-content; }
+.screen--md .te-quadrant .te-current > .te-weather { width:102.8736px;height:102.8736px; }
+.screen--lg .te-quadrant .te-condition { white-space:normal;overflow-wrap:break-word;max-width:100%; }
+.screen--lg .te-quadrant .te-day-temp { white-space:nowrap; }
+.screen--md .layout.te-quadrant { grid-template-rows:minmax(96px,1fr) 0 auto auto minmax(32px,auto);row-gap:3px; }
+.screen--md .te-quadrant .te-current { min-height:96px;grid-template-columns:103px minmax(0,1fr);column-gap:6px; }
+.screen--md .te-quadrant .te-current > .te-weather { max-height:90px;object-fit:contain; }
+.screen--md .te-quadrant .te-day { align-content:start;padding-top:2px;row-gap:2px; }
+.screen--md .te-quadrant .te-day-detail { flex-wrap:wrap;gap:1px 20px; }
+.screen--md .te-quadrant .te-precip { flex-wrap:wrap;column-gap:3px;row-gap:0; }
+.te-partial .te-condition, .te-partial .te-day-condition,
+.te-partial .te-day-detail { white-space:normal;overflow-wrap:break-word; }
+.te-partial .te-day-title, .te-partial .te-day-temp { margin:0; }
+.screen--lg:not(.screen--portrait) .layout.te-quadrant { grid-template-rows:auto auto auto auto auto;align-content:start;row-gap:4px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-current { min-height:96px;grid-template-columns:112px minmax(0,1fr);grid-template-rows:auto auto;column-gap:8px;align-content:center; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-current > .te-weather { width:104px;height:104px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-forecast { grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto;align-content:start;gap:8px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-day { align-content:start;padding:4px 0 0;gap:3px 6px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-day + .te-day { padding-left:8px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-day-detail { display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-precip { flex-wrap:wrap;gap:2px 4px; }
+.screen--lg.screen--portrait .te-quadrant .te-extra-both { display:grid;grid-template-columns:minmax(0,1fr);gap:4px; }
+.screen--lg.screen--portrait .te-quadrant .te-extra-both .te-extra-reading { grid-column:1;justify-self:stretch;min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px;white-space:normal; }
+.screen--lg.screen--portrait .te-quadrant .te-extra-reading > span { overflow-wrap:break-word; }
+.te-quadrant .te-day { position:relative; }
+.te-quadrant .te-day-separator { position:absolute; top:0; left:0; }
+.te-quadrant .te-day-separator.divider--h { width:100%; }
+.te-quadrant .te-day-separator.divider--v { height:100%; }
 
-/* :is(.screen--og, .screen--ogv2) only: compact the header and keep both forecast days visible. */
-:is(.screen--og, .screen--ogv2) .layout.te-quadrant { grid-template-columns:1.6fr 1fr 1fr 1fr; grid-template-rows:minmax(75px,1fr) auto auto auto auto; gap:3px 5px; font-size:16px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-current { grid-column:1 / -1; grid-row:1; min-height:75px; grid-template-columns:144px minmax(0,1fr); column-gap:10px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-current > .te-weather { width:144px; height:144px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-temp { font-size:var(--value-xlarge-font-size,74px); line-height:.85; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-condition { font-size:var(--label-font-size,16px); }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-metrics, :is(.screen--og, .screen--ogv2) .te-quadrant .te-sun { display:contents; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-primary-metric { grid-row:2; gap:4px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-primary-metric:nth-child(1) { grid-column:1 / 3; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-primary-metric:nth-child(2) { grid-column:3 / 5; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-primary-metric > span { font-size:var(--label-font-size,16px); }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-primary-metric > strong { font-size:var(--value-xsmall-font-size,20px); }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-metrics > .te-metric:nth-child(3) { grid-column:1; grid-row:3; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-metrics > .te-metric:nth-child(4) { grid-column:2; grid-row:3; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-sun > .te-metric:nth-child(1) { grid-column:3; grid-row:3; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-sun > .te-metric:nth-child(2) { grid-column:4; grid-row:3; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-sun > .te-metric { font-size:var(--label-font-size,16px); }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-extra { grid-column:1 / -1; grid-row:4; font-size:12px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-forecast { grid-column:1 / -1; grid-row:5; grid-template-columns:1fr 1fr; grid-template-rows:auto; gap:8px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-day { padding:3px 0 0; gap:2px 4px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-day + .te-day { border-top:0; border-left:1px solid #aaa; padding-left:8px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-day-title, :is(.screen--og, .screen--ogv2) .te-quadrant .te-day-temp { font-size:16px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-day-detail { display:flex; flex-wrap:wrap; gap:3px 7px; font-size:12px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-precip { gap:3px; }
-
-/* OG refinements; approved X rules untouched. */
-:is(.screen--og, .screen--ogv2) .layout.te-quadrant { grid-template-rows:minmax(90px,1fr) 0 auto auto auto; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-current { grid-column:1 / -1; width:calc(100% - 110px); min-height:90px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-primary-metric { grid-row:1; align-self:center; justify-self:end; flex-direction:column-reverse; align-items:flex-start; gap:1px; width:100px; margin:0; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-primary-metric:nth-child(1) { grid-column:3 / 5; transform:translateY(-22px); }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-primary-metric:nth-child(2) { grid-column:3 / 5; transform:translateY(22px); }
-
-/* Per-instance footer policy. Zero the reserved height as well as hiding the bar. */
-:is(.screen--og, .screen--ogv2) .title_bar.te-footer-hide-og,
-.screen--v2 .title_bar.te-footer-hide-x { display:none !important; }
-:is(.screen--og, .screen--ogv2) .layout.te-footer-hide-og,
-.screen--v2 .layout.te-footer-hide-x {
- --title-bar-height:0px; --title-bar-small-height:0px;
- margin-bottom:0 !important;
-}
-
-/* OG size refinements and consistent auxiliary readings. */
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-metrics > .te-metric:not(.te-primary-metric),
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-sun > .te-metric,
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-extra { font-size:var(--label-small-font-size,12px); }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-metrics > .te-metric:not(.te-primary-metric) .te-icon,
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-sun .te-icon,
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-extra .te-icon { width:1.25em; height:1.25em; }
-
-/* OG compact vertical forecast and resized current conditions. */
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-metrics > .te-metric:not(.te-primary-metric),
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-sun > .te-metric,
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-extra { font-size:12px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-primary-metric > span { font-size:12px; }
-
-/* clearer label/value spacing in the X quadrant. */
-.screen--v2 .te-quadrant .te-primary-metric { column-gap:12px; }
-
-/* OG quadrant leaves more room for multi-digit temperatures. */
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-current {
- grid-template-columns:115.2px minmax(0,1fr); width:calc(100% - 96px);
-}
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-current > .te-weather { width:115.2px; height:115.2px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-primary-metric { width:88px; }
-
-/* one native size step down for wide OG quadrant temperatures. */
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-temp.te-temp-wide { font-size:var(--value-large-font-size,58px); }
-
-/* Combined solar/lightning information. */
-.te-partial .te-extra-both { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 10px; }
-.te-partial .te-extra-reading { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
-.screen--v2 .te-quadrant .te-extra-both { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:12px; }
-.screen--v2 .te-quadrant .te-lightning-reading { grid-column:2; }
- :is(.screen--og, .screen--ogv2) .te-quadrant .te-extra-both { display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr; column-gap:5px; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-solar-reading { grid-column:1 / 3; }
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-lightning-reading { grid-column:3 / 5; }
-
-/* X portrait test11: baseline layout, only icon and description reduced. */
-.screen--v2.screen--portrait .te-quadrant .te-weather { width:153.6px; height:153.6px; }
-.screen--v2.screen--portrait .te-quadrant .te-condition { font-size:var(--label-font-size,16px); }
-@media (min-width:1000px) {
- .screen--v2.screen--portrait .te-quadrant .te-weather { width:451.2px; height:451.2px; }
- .screen--v2.screen--portrait .te-quadrant .te-condition { font-size:var(--label-xxlarge-font-size,32px); }
-}
-
-/* Portrait test12 */
-
-.screen--v2.screen--portrait .te-quadrant .te-current { grid-template-columns:153.6px minmax(0,1fr); column-gap:8px; }
-@media (min-width:1000px) {
- .screen--v2.screen--portrait .te-quadrant .te-current { grid-template-columns:451.2px minmax(0,1fr); }
-}
-
-
-/* A portrait-only plain text caption avoids single-line value fitting. */
-.te-quadrant .te-condition-wrap { display:none; }
-.screen--v2.screen--portrait .te-quadrant .te-condition-fit { display:none; }
-.screen--v2.screen--portrait .te-quadrant .te-condition-wrap { display:block; white-space:normal !important; overflow-wrap:break-word; word-break:normal; width:100%; max-width:100%; height:auto; max-height:none; line-height:1.15; overflow:visible; }
-.screen--v2.screen--portrait .te-quadrant .te-current { grid-template-rows:auto auto; min-height:min-content; }
-
-/* Summer test 1: OG main icon reduction; preserve its existing anchor. */
-:is(.screen--og, .screen--ogv2) .te-quadrant .te-current > .te-weather { width:102.8736px; height:102.8736px; }
-
-/* Summer test 3: landscape-only current icon adjustment. */
-.screen--v2:not(.screen--portrait) .te-quadrant .te-current > .te-weather { width:134.4px; height:134.4px; }
-@media (min-width:1000px) {
- .screen--v2:not(.screen--portrait) .te-quadrant .te-current > .te-weather { width:394.8px; height:394.8px; }
-}
+/* X landscape quarter: primary readings occupy the spare right side of the header. */
+.screen--lg:not(.screen--portrait) .layout.te-quadrant { grid-template-columns:repeat(4,minmax(0,1fr)); column-gap:12px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-current { grid-column:1 / 3; grid-row:1; min-height:112px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-metrics { display:contents; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-primary-metric { grid-column:3 / 5; grid-row:1; justify-self:end; width:70%; max-width:100%; flex-direction:column-reverse; align-items:flex-start; justify-content:flex-start; gap:2px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-primary-metric:nth-child(1) { align-self:start; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-primary-metric:nth-child(2) { align-self:end; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-metrics > .te-metric:nth-child(3) { grid-column:1 / 3; grid-row:2; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-metrics > .te-metric:nth-child(4) { grid-column:3 / 5; grid-row:2; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-sun { grid-column:1 / -1; grid-row:3; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:12px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-extra { grid-column:1 / -1; grid-row:4; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-forecast { grid-column:1 / -1; grid-row:5; }
+/* Reclaim header space without changing the temperature or icon sizes. */
+.screen--lg.screen--portrait .layout.te-quadrant { grid-template-rows:minmax(114px,1fr) auto auto auto auto; }
+.screen--lg.screen--portrait .te-quadrant .te-current { margin-top:-10px; margin-bottom:0; }
+.screen--lg.screen--portrait .te-quadrant .te-day { padding:3px 0; }
+/* Separate the header, supplementary readings and forecast on X landscape. */
+.screen--lg:not(.screen--portrait) .te-quadrant .te-metrics > .te-metric:not(.te-primary-metric) { margin-top:12px; }
+.screen--lg:not(.screen--portrait) .te-quadrant .te-forecast { margin-top:8px; }
+.screen--md .te-quadrant .te-count-space { display:none; }
+/* X landscape forecasts: precipitation follows UV on its own line. */
+.screen--lg:not(.screen--portrait) .te-quadrant .te-day-detail { flex-direction:column;align-items:flex-start;row-gap:4px; }
 </style>
 {% if w.temperature == blank %}
 <div class="layout layout--col te-partial te-quadrant{{ te_footer_classes }}">
@@ -402,49 +155,51 @@
 <div class="layout te-partial te-quadrant{{ te_footer_classes }}">
  <div class="te-current">
   <img class="te-weather" src="{{ w.weather_image }}" alt="{{ i18n_conditions }}">
-  <span class="te-temp{% if main_temperature >= 100 or main_temperature <= -10 %} te-temp-wide{% endif %}">{{ main_temperature }}°</span>
-  <span class="te-condition te-condition-fit" data-value-fit="true">{{ current_conditions }}</span>
-  <span class="te-condition te-condition-wrap">{{ current_conditions }}</span>
+  <span data-temperature-chars="{{ main_temperature | append: '' | size }}" class="te-temp{% if main_temperature >= 100 or main_temperature <= -10 %} te-temp-wide{% endif %} value {% if main_temperature >= 100 or main_temperature <= -10 %}value--base lg:value--base{% elsif main_temperature >= 10 or main_temperature < 0 %}value--large lg:value--large{% else %}value--large lg:value--xlarge{% endif %}">{{ main_temperature }}°</span>
+  <span class="te-condition te-condition-fit lg:portrait:hidden label label--small lg:label--base" data-value-fit="true">{{ current_conditions }}</span>
+  <span class="te-condition te-condition-wrap hidden lg:portrait:block label label--small lg:label--base">{{ current_conditions }}</span>
  </div>
- <div class="te-metrics">
-  <div class="te-metric te-primary-metric"><span>{{ secondary_temperature_label }}</span><strong class="te-number">{{ secondary_temperature_value | round }}°</strong></div>
-  <div class="te-metric te-primary-metric"><span>{{ i18n_humidity }}</span><strong class="te-number">{{ w.humidity }}%</strong></div>
-  <div class="te-metric"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-barometer.svg" alt="{{ i18n_pressure }}"><span class="te-number">{{ current_pressure }} {{ pressure_units }}</span>{% if pressure_trend_icon != blank %}<img class="te-icon" src="{{ pressure_trend_icon }}" alt="{{ pressure_trend_alt }}">{% endif %}</div>
-  <div class="te-metric"><img class="te-icon" src="https://tempestwx.com/images/Updated/wind-arrow-{{ w.forecast.right_now.wind.direction_cardinal | downcase }}.svg" alt="{{ i18n_wind_direction }}"><span class="te-number">{{ w.forecast.right_now.wind.gust }} {{ w.forecast.right_now.wind.units }}</span></div>
+ <div class="te-metrics grid grid--cols-2">
+  <div class="te-metric flex flex--center-y te-primary-metric label label--small lg:label--base"><span>{{ secondary_temperature_label }}</span><strong class="te-number value value--small lg:value--small lg:portrait:value--small">{{ secondary_temperature_value | round }}°</strong></div>
+  <div class="te-metric flex flex--center-y te-primary-metric label label--small lg:label--base"><span>{{ i18n_humidity }}</span><strong class="te-number value value--small lg:value--small lg:portrait:value--small">{{ w.humidity }}%</strong></div>
+  <div class="te-metric flex flex--center-y label label--small lg:label--base"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-barometer.svg" alt="{{ i18n_pressure }}"><span class="te-number">{{ current_pressure }} {{ pressure_units }}</span>{% if pressure_trend_icon != blank %}<img class="te-icon" src="{{ pressure_trend_icon }}" alt="{{ pressure_trend_alt }}">{% endif %}</div>
+  <div class="te-metric flex flex--center-y label label--small lg:label--base"><img class="te-icon" src="https://tempestwx.com/images/Updated/wind-arrow-{{ w.forecast.right_now.wind.direction_cardinal | downcase }}.svg" alt="{{ i18n_wind_direction }}"><span class="te-number">{{ w.forecast.right_now.wind.gust }} {{ w.forecast.right_now.wind.units }}</span></div>
  </div>
- <div class="te-sun">
-  <span class="te-metric"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-sunrise.svg" alt="{{ i18n_sunrise }}">{{ w.forecast.right_now.sunrise }}</span>
-  <span class="te-metric"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-sunset.svg" alt="{{ i18n_sunset }}">{{ w.forecast.right_now.sunset }}</span>
+ <div class="te-sun grid grid--cols-2">
+  <span class="te-metric flex flex--center-y label label--small lg:label--base"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-sunrise.svg" alt="{{ i18n_sunrise }}">{{ w.forecast.right_now.sunrise }}</span>
+  <span class="te-metric flex flex--center-y label label--small lg:label--base"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-sunset.svg" alt="{{ i18n_sunset }}">{{ w.forecast.right_now.sunset }}</span>
  </div>
  {% if information_below_weather_icon == 'both' %}
  {% if solar_available or lightning_available %}
- <div class="te-extra te-extra-both">
+ <div class="te-extra te-extra-both label label--small lg:label--base">
  {% if solar_available %}<span class="te-extra-reading te-solar-reading"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-day-sunny.svg" alt="{{ i18n_solar_radiation }}"><span>{% if solar_radiation != blank %}{{ solar_radiation | round }}{% else %}—{% endif %} W/m² ({% if current_brightness != blank %}{{ current_brightness | round }}{% else %}—{% endif %} lux)</span></span>{% endif %}
- {% if lightning_available %}<span class="te-extra-reading te-lightning-reading"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-lightning.svg" alt="{{ i18n_lightning }}"><span>{{ lightning_last_time }} @ {{ lightning_last_distance }} {{ lightning_distance_units }} ({{ lightning_count_1h }} / {{ lightning_count_3h }})</span></span>{% endif %}
+ {% if lightning_available %}<span class="te-extra-reading te-lightning-reading"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-lightning.svg" alt="{{ i18n_lightning }}"><span>{{ lightning_last_time }} @ {{ lightning_last_distance }} {{ lightning_distance_units }} ({{ lightning_count_1h }}<span class="te-count-space"> </span>/<span class="te-count-space"> </span>{{ lightning_count_3h }})</span></span>{% endif %}
  </div>
  {% endif %}
  {% else %}
  {% if information_below_weather_icon == 'lightning' and lightning_available %}
- <div class="te-extra"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-lightning.svg" alt="{{ i18n_lightning }}"><span>{{ lightning_last_time }} @ {{ lightning_last_distance }} {{ lightning_distance_units }} ({{ lightning_count_1h }} / {{ lightning_count_3h }})</span></div>
+ <div class="te-extra label label--small lg:label--base"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-lightning.svg" alt="{{ i18n_lightning }}"><span>{{ lightning_last_time }} @ {{ lightning_last_distance }} {{ lightning_distance_units }} ({{ lightning_count_1h }}<span class="te-count-space"> </span>/<span class="te-count-space"> </span>{{ lightning_count_3h }})</span></div>
  {% elsif information_below_weather_icon == 'solar' and solar_available %}
- <div class="te-extra"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-day-sunny.svg" alt="{{ i18n_solar_radiation }}"><span>{% if solar_radiation != blank %}{{ solar_radiation | round }}{% else %}—{% endif %} W/m² ({% if current_brightness != blank %}{{ current_brightness | round }}{% else %}—{% endif %} lux)</span></div>
+ <div class="te-extra label label--small lg:label--base"><img class="te-icon" src="https://trmnl.com/images/plugins/weather/wi-day-sunny.svg" alt="{{ i18n_solar_radiation }}"><span>{% if solar_radiation != blank %}{{ solar_radiation | round }}{% else %}—{% endif %} W/m² ({% if current_brightness != blank %}{{ current_brightness | round }}{% else %}—{% endif %} lux)</span></div>
  {% endif %}
  {% endif %}
- <div class="te-forecast" style="grid-row:5">
+ <div class="te-forecast te-forecast-row">
 <div class="te-day">
- <strong class="te-day-title">{{ today_label }}</strong>
- <span class="te-number te-day-temp">{{ w.forecast.today.mintemp | round }}° / {{ w.forecast.today.maxtemp | round }}°</span>
- <span class="te-day-condition">{{ today_conditions }}</span>
- <div class="te-day-detail">
+ <strong class="te-day-title title title--small lg:title--base">{{ today_label }}</strong>
+ <span class="te-number te-day-temp text--right value value--xxsmall lg:value--small">{{ w.forecast.today.mintemp | round }}° / {{ w.forecast.today.maxtemp | round }}°</span>
+ <span class="te-day-condition hidden lg:visible label label--small lg:label--base">{{ today_conditions }}</span>
+ <div class="te-day-detail label label--small lg:label--base">
   <span class="te-number">{{ i18n_uv_short }} {{ w.forecast.today.uv_index }}</span>
 <span class="te-precip"><span class="te-precip-label">{{ i18n_precipitation }}</span><span class="te-number">{{ w.forecast.today.precip.probability }}%</span>{% if w.forecast.today.precip.amount != blank %}<span class="te-number te-amount">{{ w.forecast.today.precip.amount | round: 1 }} {{ w.forecast.today.precip.units }}</span>{% endif %}</span>
  </div>
 </div>
 <div class="te-day">
- <strong class="te-day-title">{{ tomorrow_label }}</strong>
- <span class="te-number te-day-temp">{{ w.forecast.tomorrow.mintemp | round }}° / {{ w.forecast.tomorrow.maxtemp | round }}°</span>
- <span class="te-day-condition">{{ tomorrow_conditions }}</span>
- <div class="te-day-detail">
+<div class="divider--h te-day-separator hidden lg:portrait:visible" aria-hidden="true"></div>
+<div class="divider--v te-day-separator lg:portrait:hidden" aria-hidden="true"></div>
+ <strong class="te-day-title title title--small lg:title--base">{{ tomorrow_label }}</strong>
+ <span class="te-number te-day-temp text--right value value--xxsmall lg:value--small">{{ w.forecast.tomorrow.mintemp | round }}° / {{ w.forecast.tomorrow.maxtemp | round }}°</span>
+ <span class="te-day-condition hidden lg:visible label label--small lg:label--base">{{ tomorrow_conditions }}</span>
+ <div class="te-day-detail label label--small lg:label--base">
   <span class="te-number">{{ i18n_uv_short }} {{ w.forecast.tomorrow.uv_index }}</span>
 <span class="te-precip"><span class="te-precip-label">{{ i18n_precipitation }}</span><span class="te-number">{{ w.forecast.tomorrow.precip.probability }}%</span>{% if w.forecast.tomorrow.precip.amount != blank %}<span class="te-number te-amount">{{ w.forecast.tomorrow.precip.amount | round: 1 }} {{ w.forecast.tomorrow.precip.units }}</span>{% endif %}</span>
  </div>
@@ -452,7 +207,9 @@
  </div>
 </div>
 {% endif %}
+{% unless hide_footer %}
 <div class="title_bar te-title{{ te_footer_classes }}">
  <span class="image">t°</span><span class="title">{{ i18n_weather }}</span>
  <span class="instance">{{ trmnl.plugin_settings.instance_name }}{% if footer_refreshed_at != blank %} ({{ footer_refreshed_at }}){% endif %}</span>
 </div>
+{% endunless %}
